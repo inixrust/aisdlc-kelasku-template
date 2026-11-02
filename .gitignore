@@ -1,2 +1,5 @@
 _bmad/config.user.toml
 _bmad/custom/*.user.toml
+.env
+.env.*
+!.env.example
