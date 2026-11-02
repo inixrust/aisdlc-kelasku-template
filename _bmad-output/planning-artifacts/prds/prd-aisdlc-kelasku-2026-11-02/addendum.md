@@ -12,13 +12,13 @@ Dokumen ini menyimpan detail yang dibutuhkan alur kerja berikutnya tetapi tidak 
 
 | Aturan | FR | Usulan penegakan |
 |---|---|---|
-| R1 | FR-8 | Cek kuota dan insert dalam satu transaksi SQLite yang mengambil write lock sejak awal (`BEGIN IMMEDIATE`). Jumlah Terdaftar dihitung dengan `COUNT` di dalam transaksi, bukan dari counter tersimpan. |
+| R1 | FR-8 | Cek kuota dan insert dalam satu transaksi SQLite yang mengambil write lock sejak awal (`BEGIN IMMEDIATE`). Jumlah Terdaftar dihitung dengan `COUNT` di dalam transaksi, bukan dari counter tersimpan. Status Terdaftar hanya diberikan bila daftar tunggu juga kosong (R3). |
 | R2 | FR-9 | Email dinormalisasi (trim + huruf kecil) sebelum disimpan. Unique index parsial pada `(class_id, email)` untuk pendaftaran aktif sebagai jaring pengaman; pelanggaran index dipetakan ke respons "sudah terdaftar", bukan error 500. |
 | R3 | FR-10 | Urut `created_at`, lalu `id` sebagai pemecah seri. Posisi antrean dihitung saat dibaca, tidak disimpan. |
 | R4 | FR-13 | Batal + promosi dalam satu transaksi `BEGIN IMMEDIATE`. Hitung `kursi kosong = kuota − terdaftar` di dalam transaksi, promosikan `min(kursi kosong, panjang antrean)` teratas. Simpan `cancelled_by`, `cancelled_at`, `promoted_at`. |
 | R5 | FR-16 | "Hari ini" dihitung di Asia/Jakarta di server; jangan mengandalkan jam browser. Simpan tanggal sesi sebagai tanggal kalender (`YYYY-MM-DD`), bukan timestamp. |
 | R6 | FR-19 | `hadir * 5 >= totalSesi * 4` dengan bilangan bulat. Jangan `0.8 * n` (`0.8 * 3` = `2.4000000000000004`). |
-| R7 | FR-3 | Cek `kuota baru >= COUNT(Terdaftar)` di dalam transaksi yang sama dengan update, agar pendaftaran yang masuk bersamaan ikut terhitung. |
+| R7 | FR-3 | Cek `kuota baru >= COUNT(Terdaftar)` di dalam transaksi yang sama dengan update, agar pendaftaran yang masuk bersamaan ikut terhitung. Bila kuota naik, promosikan `min(kuota baru − terdaftar, panjang antrean)` teratas di transaksi yang sama. Fungsi promosinya sama dengan R4. |
 
 Satu proses server yang memegang berkas SQLite sudah memadai untuk skala ini (±5 admin, ±400 peserta per bulan).
 
@@ -42,6 +42,10 @@ Nama test menyebut ID aturan (konvensi `AGENTS.md`).
 - `R5: attendance is accepted for today in Asia/Jakarta and rejected for tomorrow` (termasuk kasus 23.30 WIB dan 06.00 WIB)
 - `R6: eligibility thresholds for 1, 3, 4, 5 sessions`
 - `R7: lowering quota below registered count is rejected with the minimum in the message`
+- `R3: raising quota promotes the head of the waitlist in the same transaction`
+- `R3: a new registration is waitlisted while the waitlist is non-empty`
+- `R4: cancelling an already-cancelled registration is a no-op and promotes nobody`
+- Kelas Selesai (tanggal sesi terakhir < hari ini, WIB) menolak pendaftaran, pembatalan, dan promosi
 
 ## 4. Data seed
 
@@ -57,4 +61,4 @@ Nama test menyebut ID aturan (konvensi `AGENTS.md`).
 
 ## 6. Keputusan teknis yang ditunda
 
-Package manager, cara akses SQLite, struktur repositori, mekanisme sesi admin, dan pencadangan berkas SQLite diputuskan lewat `bmad-architecture`.
+Package manager, cara akses SQLite, struktur repositori, mekanisme sesi masuk admin, dan pencadangan berkas SQLite diputuskan lewat `bmad-architecture`.
