@@ -1,6 +1,8 @@
 ---
 status: final
 stepsCompleted: [1, 2, 3, 4]
+updated: 2026-11-03
+revision: "Diselaraskan dengan PRD revisi 2026-11-03 (C1, C2, H2–H6, NFR-6/NFR-8 HTTPS)"
 inputDocuments:
   - docs/intent-kelasku.md
   - _bmad-output/planning-artifacts/prds/prd-aisdlc-kelasku-2026-11-02/prd.md
@@ -22,6 +24,7 @@ Dokumen ini memecah kebutuhan dari PRD, UX (DESIGN.md + EXPERIENCE.md), Architec
 
 - `npm test`, `npm run typecheck`, dan (bila sudah ada) `npm run test:e2e` hijau sebelum commit; commit Conventional Commits berbahasa Inggris lewat PR, tidak langsung ke `main`.
 - Setiap test aturan bisnis menyebut ID aturannya di nama `describe`/`it` (mis. `it('R1: 20 parallel registrations to a quota-5 class yield exactly 5 registered')`).
+- **Pola bukti konkurensi (PRD FR-8, berlaku untuk R1, R2, R4, R7):** operasi benar-benar bersamaan lewat lebih dari satu koneksi ke berkas DB (harness `runConcurrently`, Story 1.3); tidak ada respons 5xx atau error; mutation check (varian tanpa atomisitas membuat test gagal); skenario serentak diulang 50 kali di setiap run CI dan semuanya lulus.
 - Aturan lapisan, AD-1..AD-20, dan konvensi Architecture Spine dipatuhi; fitness test arsitektur (Story 1.1) tetap hijau.
 - Kode error baru masuk `src/shared/errors.ts` lengkap dengan pesan Indonesia dan status HTTP; tipe request/response baru masuk `src/shared/dto.ts`.
 - Story yang mengubah skema menambah berkas migrasi bernomor baru; berkas migrasi yang sudah di-merge tidak diedit.
@@ -36,46 +39,58 @@ Dokumen ini memecah kebutuhan dari PRD, UX (DESIGN.md + EXPERIENCE.md), Architec
 - A-4: Tautan "Lihat halaman status" di hasil pendaftaran disembunyikan sampai Story 2.2 (EXPERIENCE.md › Epik 1).
 - A-5: FR SHOULD (FR17, FR18, FR20) menjadi story bertanda "(SHOULD)" di akhir epiknya (di Epik 4 sebelum story kesiapan rilis) agar mudah dipotong tanpa memutus story lain.
 - A-6: E2E memakai Playwright vanilla; `@seontechnologies/playwright-utils` (HP-4) tidak ditambahkan karena tidak ada di tabel Stack spine.
-- A-7: Keputusan siklus kelas di PRD §4.2 (pembatalan kapan saja selama Dibuka, Selesai membekukan daftar) dipakai apa adanya; `[NOTE FOR PM]` PRD belum dikonfirmasi Rina.
+- A-7: Keputusan siklus kelas di PRD §4.2 revisi dipakai apa adanya: pembatalan kapan saja selama Dibuka; kelas **Selesai sejak 00.00 WIB pada tanggal sesi terakhir** (`max(session_date) <= today`), sehingga pendaftaran, pembatalan, dan promosi ditutup sepanjang hari sesi terakhir, sedangkan presensi tetap terbuka. `[NOTE FOR PM]` PRD (termasuk akibat bagi kelas satu sesi) belum dikonfirmasi Rina.
 - A-8: Status HTTP untuk kode error yang belum ditetapkan spine (HP-2): `validation_error` 400; `class_not_found`, `registration_not_found`, `session_not_found` 404; konflik aturan bisnis (`quota_below_registered`, `registration_closed`, `class_finished`, `session_has_attendance`, `session_not_yet_open`) 409, bersama `confirmation_required` dan `roster_changed` yang sudah 409 di spine.
+- A-9: **PRD revisi 2026-11-03 menang atas dokumen hilir yang belum diperbarui** (memlog PRD: arsitektur dan UX sengaja tidak disentuh). Drift yang diketahui: (a) spine AD-6 "Selesai bila `max(session_date) < today`" → epics memakai `<=`; (b) DESIGN.md/EXPERIENCE.md "checkbox Hadir" → epics memakai kontrol tiga keadaan Hadir/Tidak hadir/Belum dicatat (grup radio); (c) EXPERIENCE.md "tanpa paginasi sampai 50 baris" → tampilan bawaan 30 hari + "Tampilkan semua kelas Selesai"; (d) handoff test design "burn-in ×20" → 50 ulangan per run CI; (e) spine "HTTPS bergantung jaringan lembaga" → HTTPS wajib di produksi. Tindak lanjut: perbarui spine dan UX (`bmad-correct-course`, atau mode update `bmad-architecture`/`bmad-ux`) sebelum Story 1.6, 3.3, dan 4.7 di-build.
+- A-10: HTTPS (NFR-6/NFR-8) diterminasi oleh reverse proxy di server lembaga yang sama (mis. Caddy atau nginx), yang juga mengalihkan HTTP → HTTPS; proses Fastify tetap mendengar HTTP di `127.0.0.1` dan berjalan dengan `COOKIE_SECURE=true`. Ini opsi paling sederhana yang tidak menambah dependensi aplikasi dan sejalan dengan catatan spine ("aplikasi siap lewat `COOKIE_SECURE`"); konfirmasi di spine sebelum Story 4.7.
+- A-11: Bukti konkurensi dua lapis: (1) test multi-koneksi `worker_threads` atas `createServices` (race nyata di SQLite), dan (2) 20 permintaan HTTP serentak ke server Fastify yang benar-benar `listen` di port acak (bukan `inject`), untuk membuktikan "tanpa 5xx" end-to-end. Mutation check dijalankan otomatis di setiap run: test menyuntik varian use-case yang memanggil tx-step di luar `withWriteTx` dan memastikan assertion R-nya gagal.
+- A-12: Test sensitif waktu (clock dan R5) diberi akhiran `*.tz.test.ts` dan dijalankan `npm test` tiga kali, dengan `TZ=UTC`, `TZ=Asia/Jakarta`, dan `TZ=Asia/Jayapura`; test lain tetap `TZ=UTC` (HP-1).
+- A-13: Di API presensi, entri `present: null` tidak menulis apa pun; catatan presensi yang sudah tersimpan tidak pernah dihapus (tidak bisa kembali ke Belum dicatat), sesuai asumsi PRD FR-15.
+- A-14: Potongan cakupan PRD §7.1: potongan SHOULD = story bertanda "(SHOULD)"; potongan kedua ditandai "✂2" pada AC yang boleh ditunda (lihat bagian Potongan cakupan di bawah).
+
+**Potongan cakupan (PRD §7.1).** Keputusan diambil di akhir hari ke-3: bila Story 1.1–1.12 belum selesai dengan test konkurensi R1 dan R2 hijau sesuai pola bukti, potongan SHOULD dan potongan kedua diterapkan sekaligus; bila Epik 1 selesai tetapi Story 2.1 belum dimulai, hanya potongan SHOULD. Keputusan dicatat di memlog proyek.
+
+- Potongan SHOULD: Story 3.5, 3.6, 4.5.
+- Potongan kedua (✂2): tampilan bagian Dibatalkan di Story 1.10 (data pembatalan tetap disimpan); dialog konfirmasi perubahan tanggal di Story 3.4 (penguncian tanggal berpresensi tetap); benchmark p95 di Story 4.6 diganti smoke test kinerja; axe otomatis dibatasi ke halaman pendaftaran, halaman status, pembatalan, dan formulir presensi + uji keyboard manual ketiga alur itu.
+- Tidak pernah dipotong: R1–R7 beserta test-nya (NFR-1, NFR-9), HTTPS (Story 4.7), kontrol presensi tiga keadaan (Story 3.3).
 
 ## Requirements Inventory
 
 ### Functional Requirements
 
 FR1: Admin masuk dengan email + password akun seed dan keluar; kredensial salah menampilkan "Email atau password salah" tanpa menyebut bagian yang salah; halaman admin tanpa sesi masuk dialihkan ke halaman masuk; aksi admin di API tanpa sesi masuk ditolak HTTP 401; setelah keluar halaman admin tidak bisa dibuka tanpa masuk ulang.
-FR2: Admin membuat kelas dengan judul (1–120 karakter setelah trim), minimal satu tanggal sesi tanpa duplikat (pesan menyebut tanggalnya), kuota bilangan bulat ≥ 1, dan minimal satu tanggal ≥ hari ini (WIB); tanggal lain boleh di masa lalu; setelah tersimpan kelas muncul di tabel kelas dan punya tautan pendaftaran.
+FR2: Admin membuat kelas dengan judul (1–120 karakter setelah trim), minimal satu tanggal sesi tanpa duplikat (pesan menyebut tanggalnya), kuota bilangan bulat ≥ 1, dan minimal satu tanggal **setelah** hari ini (WIB), karena kelas yang tanggal sesi terakhirnya hari ini atau lebih awal lahir Selesai; tanggal lain boleh hari ini atau di masa lalu; setelah tersimpan kelas muncul di tabel kelas dan punya tautan pendaftaran.
 FR3: Admin mengubah judul, menambah/menghapus tanggal sesi, dan mengubah kuota. R7: kuota < jumlah Terdaftar ditolak dengan "Kuota minimal N (jumlah terdaftar saat ini)" (berlaku juga bila pendaftaran masuk di antara buka formulir dan simpan); validasi FR2 berlaku; kuota naik mempromosikan min(kuota baru − Terdaftar, panjang antrean) teratas dalam operasi atomik yang sama (R3); tanggal sesi yang sudah punya presensi tidak bisa dihapus/diubah; perubahan tanggal saat presensi sudah ada butuh konfirmasi; kelas Selesai hanya bisa diubah judulnya; kelas tidak bisa dihapus.
-FR4: Tabel kelas admin: kolom judul, sesi berikutnya (atau "Selesai"), terisi/kuota ("18/20"), jumlah daftar tunggu; kelas Penuh ditandai teks "Penuh" + ikon; urutan sesi berikutnya terdekat di atas, Selesai di bawah; 50 kelas tanpa paginasi; empat kolom terlihat tanpa gulir horizontal di 1366×768.
+FR4: Tabel kelas admin: kolom judul, sesi berikutnya (tanggal terdekat ≥ hari ini; kelas Selesai, termasuk pada hari sesi terakhir, tampil "Selesai"), terisi/kuota ("18/20"), jumlah daftar tunggu; kelas Penuh ditandai teks "Penuh" + ikon; urutan sesi berikutnya terdekat di atas, kelas Selesai di bawah dengan yang paling baru selesai lebih dulu; tampilan bawaan = semua kelas Dibuka + kelas Selesai yang tanggal sesi terakhirnya dalam 30 hari terakhir; tautan "Tampilkan semua kelas Selesai" memuat semua kelas di tabel yang sama; tanpa paginasi di kedua tampilan; keduanya memenuhi NFR7 pada ±240 kelas; empat kolom terlihat tanpa gulir horizontal di 1366×768.
 FR5: Halaman kelas admin: bagian Terdaftar (nama, email, waktu daftar, penanda "Naik dari daftar tunggu" + waktu promosi), bagian Daftar tunggu (posisi, nama, email, waktu daftar, urut posisi), bagian Dibatalkan yang bisa dilipat (nama, email, waktu batal, pembatal); titik masuk presensi, grid rekap, dan ekspor CSV.
 FR6: Admin menyalin tautan pendaftaran kelas yang stabil (tidak berubah saat judul diubah); tombol "Salin tautan" memberi konfirmasi yang terbaca pembaca layar.
-FR7: Peserta mendaftar lewat tautan dengan nama (1–100 karakter) dan email (format valid, disimpan ternormalisasi) tanpa akun; halaman menampilkan judul, tanggal sesi, dan alert "Kelas penuh — Anda akan masuk daftar tunggu" bila penuh; hasil "Terdaftar" atau "Daftar tunggu #N" tampil di halaman yang sama dengan tautan ke halaman status; kelas Selesai ditolak "Pendaftaran kelas ini sudah ditutup" di API dan halaman tanpa formulir.
-FR8: R1 — status pendaftaran baru Terdaftar hanya bila jumlah Terdaftar < kuota dan daftar tunggu kosong, selain itu Daftar tunggu; Terdaftar tidak pernah melebihi kuota; 20 pendaftaran paralel ke kelas kuota 5 → tepat 5 Terdaftar + 15 Daftar tunggu; keputusan + simpan satu operasi atomik di lapisan data.
-FR9: R2 — satu pendaftaran aktif per email ternormalisasi per kelas; email yang sudah aktif melihat status yang ada ("Anda sudah terdaftar di kelas ini" / "Anda sudah di daftar tunggu #N"); "Budi@Mail.com " = "budi@mail.com"; dua permintaan identik bersamaan → satu pendaftaran; pendaftaran Dibatalkan boleh mendaftar lagi sebagai pendaftar baru.
+FR7: Peserta mendaftar lewat tautan dengan nama (1–100 karakter) dan email (format valid, disimpan ternormalisasi) tanpa akun; halaman menampilkan judul, tanggal sesi, dan alert "Kelas penuh — Anda akan masuk daftar tunggu" bila penuh; hasil "Terdaftar" atau "Daftar tunggu #N" tampil di halaman yang sama dengan tautan ke halaman status; kelas Selesai ditolak "Pendaftaran kelas ini sudah ditutup" di API dan halaman tanpa formulir; pendaftaran yang dikirim pada tanggal sesi terakhir (WIB), pukul berapa pun, ditolak dengan pesan yang sama, sedangkan yang dikirim sehari sebelumnya pukul 23.59 WIB diterima.
+FR8: R1 — status pendaftaran baru Terdaftar hanya bila jumlah Terdaftar < kuota dan daftar tunggu kosong, selain itu Daftar tunggu; Terdaftar tidak pernah melebihi kuota; 20 permintaan HTTP serentak dengan email berbeda ke API yang sedang berjalan pada kelas kuota 5 → ke-20 berhasil tanpa 5xx, tepat 5 Terdaftar, tepat 15 Daftar tunggu dengan posisi 1–15 tanpa celah maupun duplikat; keputusan + simpan satu operasi atomik di lapisan data; saat lapisan data sibuk, permintaan menunggu/diulang otomatis sehingga pada beban setara 20 pendaftaran serentak tidak ada peserta yang menerima error; bukti mengikuti pola bukti konkurensi (multi-koneksi, mutation check, 50 ulangan per run CI).
+FR9: R2 — satu pendaftaran aktif per email ternormalisasi per kelas; email yang sudah aktif melihat status yang ada ("Anda sudah terdaftar di kelas ini" / "Anda sudah di daftar tunggu #N"); "Budi@Mail.com " = "budi@mail.com"; dua permintaan identik bersamaan → satu pendaftaran, keduanya berhasil tanpa 5xx dan menampilkan status yang sama (pola bukti FR8); pendaftaran Dibatalkan boleh mendaftar lagi sebagai pendaftar baru.
 FR10: R3 — daftar tunggu FIFO menurut waktu daftar dengan pemecah seri deterministik; posisi antrean sama di halaman kelas admin, status peserta, dan hasil pendaftaran; posisi bergeser maju saat yang di depan batal/naik; di kelas Selesai pendaftaran Daftar tunggu menampilkan "Kelas selesai — tidak naik dari daftar tunggu".
-FR11: Peserta membatalkan pendaftaran aktif dari halaman status dengan dua langkah (konfirmasi menyebut judul kelas dan sifat final); tercatat waktu batal + pembatal = peserta; boleh kapan saja selama Dibuka; kelas Selesai ditolak "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan"; pembatalan ulang tidak mengubah apa pun dan tidak memicu promosi kedua.
+FR11: Peserta membatalkan pendaftaran aktif dari halaman status dengan dua langkah (konfirmasi menyebut judul kelas dan sifat final); tercatat waktu batal + pembatal = peserta; boleh kapan saja selama Dibuka; kelas Selesai, termasuk sepanjang tanggal sesi terakhir (WIB), ditolak "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan"; API pembatalan peserta mewajibkan kode rujukan pendaftaran + email yang cocok setelah dinormalisasi; email tidak cocok atau kode tidak dikenal → pesan sama "Pendaftaran tidak ditemukan" tanpa menyebut bagian yang salah dan tanpa perubahan data; kode rujukan publik acak dan tidak berurutan, ID internal tidak pernah di URL/API publik; tanpa rate limit di MVP; pembatalan ulang tidak mengubah apa pun dan tidak memicu promosi kedua.
 FR12: Admin membatalkan pendaftaran aktif atas nama peserta dari halaman kelas admin dengan konfirmasi dua langkah dan aturan Selesai yang sama; pembatal = admin; efek promosi identik FR13.
-FR13: R4 — pembatalan pendaftaran Terdaftar mempromosikan kepala daftar tunggu dalam operasi atomik yang sama, dengan waktu promosi; jumlah min(kuota − Terdaftar, panjang antrean); pembatalan bersamaan tidak melampaui kuota dan tidak mempromosikan orang yang sama dua kali; membatalkan Daftar tunggu tidak mempromosikan siapa pun; peserta yang naik melihat "Terdaftar (naik dari daftar tunggu)".
+FR13: R4 — pembatalan pendaftaran Terdaftar mempromosikan kepala daftar tunggu dalam operasi atomik yang sama, dengan waktu promosi; jumlah min(kuota − Terdaftar, panjang antrean); pembatalan bersamaan tidak melampaui kuota, tidak mempromosikan orang yang sama dua kali, dan keduanya berhasil tanpa 5xx (pola bukti FR8); membatalkan Daftar tunggu tidak mempromosikan siapa pun; di kelas Selesai, termasuk sepanjang tanggal sesi terakhir, tidak ada promosi; peserta yang naik melihat "Terdaftar (naik dari daftar tunggu)".
 FR14: Peserta memasukkan email dan melihat semua pendaftaran aktifnya: judul, tanggal sesi, status, dan untuk Terdaftar "Hadir x dari y sesi" + kelayakan; email tanpa pendaftaran aktif → "Tidak ada pendaftaran aktif untuk email ini"; bisa dipakai penuh di lebar 360 px.
-FR15: Admin mencatat dan mengoreksi presensi semua peserta Terdaftar untuk satu sesi dalam satu formulir dengan satu "Simpan"; formulir bisa dioperasikan penuh dengan keyboard; pendaftaran Dibatalkan tidak tampil (presensinya tetap tersimpan); peserta yang naik setelah sesi disimpan tampil "belum dicatat" tanpa centang bawaan.
-FR16: R5 — presensi ditolak di API untuk sesi bertanggal setelah hari ini (WIB), termasuk 23.30 WIB dan 06.00 WIB; UI menampilkan "Bisa diisi mulai {tanggal}".
+FR15: Admin mencatat dan mengoreksi presensi semua peserta Terdaftar untuk satu sesi dalam satu formulir dengan satu "Simpan"; setiap peserta punya kontrol pilihan tunggal tiga keadaan **Hadir / Tidak hadir / Belum dicatat** (grup radio, bukan checkbox); tanpa FR18 peserta tanpa catatan dibuka Belum dicatat; "Simpan" hanya membuat/mengubah catatan untuk peserta bernilai Hadir atau Tidak hadir, sehingga peserta yang dibiarkan Belum dicatat tetap tanpa catatan, tampil "—" di grid/CSV, dan tidak dihitung Tidak hadir di FR19/FR20; catatan tersimpan bisa dikoreksi Hadir ↔ Tidak hadir tetapi tidak bisa kembali ke Belum dicatat (pilihan itu tidak tersedia untuk peserta bercatatan); formulir bisa dioperasikan penuh dengan keyboard; pendaftaran Dibatalkan tidak tampil (presensinya tetap tersimpan); peserta yang naik setelah sesi disimpan tampil Belum dicatat, termasuk bila FR18 aktif.
+FR16: R5 — presensi ditolak di API untuk sesi bertanggal setelah hari ini (WIB); kasus tepi wajib: 00.30 WIB tanggal D pada proses UTC → sesi D diterima, D+1 ditolak; 06.59 WIB tanggal D pada proses UTC → sesi D diterima; 23.30 WIB tanggal D pada proses Asia/Jayapura → sesi D+1 ditolak; test dijalankan dengan zona proses minimal UTC, Asia/Jakarta, Asia/Jayapura dan waktu "sekarang" yang dikendalikan test; UI menampilkan "Bisa diisi mulai {tanggal}".
 FR17 (SHOULD): Beranda "Sesi hari ini" setelah masuk: sesi bertanggal hari ini di semua kelas, urut judul kelas, satu klik ke formulir presensi; kosong → "Tidak ada sesi hari ini".
-FR18 (SHOULD): Formulir presensi yang belum pernah disimpan dibuka dengan semua peserta tercentang hadir.
+FR18 (SHOULD): Formulir presensi yang belum pernah disimpan dibuka dengan semua peserta dalam keadaan Hadir; pilihan bawaan ini dihitung sebagai pilihan admin, sehingga "Simpan" membuat catatan Hadir untuk peserta yang tidak diubah; pengecualian: peserta hasil promosi pada sesi yang sudah pernah disimpan tetap Belum dicatat.
 FR19: R6 — "Layak" bila `hadir × 5 ≥ total sesi × 4`, selain itu "Belum layak"; bilangan bulat saja; status langsung berubah setelah presensi disimpan/dikoreksi dan setelah tanggal sesi berubah.
-FR20 (SHOULD): "Tidak mungkin layak" menggantikan "Belum layak" bila `(hadir + sesi tanpa catatan) × 5 < total sesi × 4`.
-FR21: Grid rekap satu kelas: baris per peserta Terdaftar, kolom per sesi berisi "Hadir"/"Tidak hadir"/"—", lalu jumlah hadir "x/y" dan kelayakan; nilai dibedakan dengan teks.
+FR20 (SHOULD): "Tidak mungkin layak" menggantikan "Belum layak" bila `(hadir + sesi Belum dicatat) × 5 < total sesi × 4`; sesi Belum dicatat = sesi tanpa catatan untuk pendaftaran itu (belum tiba atau lampau belum diisi); hanya catatan Tidak hadir yang mengurangi peluang layak.
+FR21: Grid rekap satu kelas: baris per peserta Terdaftar, kolom per sesi berisi "Hadir"/"Tidak hadir"/"—" (Belum dicatat), lalu jumlah hadir "x/y" dan kelayakan; nilai dibedakan dengan teks.
 FR22: Ekspor rekap CSV: nama, email, kolom per tanggal sesi, jumlah hadir, total sesi, kelayakan; header Indonesia; UTF-8 + BOM; aman untuk koma/kutip/non-ASCII; sel diawali `= + - @` diberi awalan `'`; nama berkas berisi judul kelas + tanggal ekspor WIB dengan karakter tidak sah diganti tanda hubung.
 
 ### NonFunctional Requirements
 
-NFR1: Konsistensi data — R1, R2, R4 (dan R7) ditegakkan di lapisan data dalam satu transaksi per operasi; test paralel FR8, FR9, FR13 lulus berulang tanpa flake (burn-in ×20).
+NFR1: Konsistensi data — R1, R2, R4 (dan R7) ditegakkan di lapisan data dalam satu transaksi per operasi; test serentak FR8, FR9, FR13 (dan R7) memenuhi pola bukti konkurensi: operasi benar-benar bersamaan lewat > 1 koneksi, tanpa respons 5xx, mutation check gagal tanpa atomisitas, 50 ulangan per run CI yang semuanya lulus.
 NFR2: Zona waktu — semua "hari ini" dan tanggal sesi memakai Asia/Jakarta, lepas dari zona server/browser.
 NFR3: Aksesibilitas — WCAG 2.1 AA: kontras ≥ 4,5:1, semua aksi bisa dengan keyboard, fokus terlihat, setiap input berlabel, status tidak hanya warna, hasil aksi diumumkan ke pembaca layar.
 NFR4: Tata letak — halaman peserta penuh pada lebar 360 px tanpa gulir horizontal; halaman admin dioptimalkan untuk 1366×768 bergaya panel admin, tabel utama tanpa gulir horizontal.
 NFR5: Bahasa — semua teks UI, pesan validasi, header CSV berbahasa Indonesia; tanggal format "Senin, 9 Nov 2026"; identifier kode dan nama berkas Inggris.
-NFR6: Data lokal — satu berkas SQLite lokal; tanpa layanan cloud untuk DB, hosting, atau auth.
+NFR6: Data lokal — satu berkas SQLite lokal; tanpa layanan cloud untuk DB, hosting, atau auth; produksi = satu instance di satu server kecil milik lembaga yang terjangkau dari internet lewat HTTPS (peserta mendaftar dari ponsel di luar kantor); laptop lokal hanya untuk pengembangan dan demo.
 NFR7: Kinerja — data satu tahun (±240 kelas, ±5.000 pendaftaran): p95 respons < 1 s per halaman/aksi, ekspor CSV satu kelas < 2 s, diukur di satu inti CPU.
-NFR8: Keamanan minimum — password admin di-hash; aksi admin di API selalu memeriksa sesi masuk; semua input divalidasi di server; nilai rahasia hanya di `.env` lokal.
+NFR8: Keamanan minimum — di produksi semua lalu lintas browser ↔ Kelasku memakai HTTPS dan HTTP biasa dialihkan ke HTTPS; password admin di-hash; aksi admin di API selalu memeriksa sesi masuk; semua input divalidasi di server; nilai rahasia hanya di `.env` lokal.
 NFR9: Kemampuan uji — setiap aturan R1–R7 punya test otomatis yang menyebut ID aturan di nama test; data seed untuk demo dan e2e (admin, kelas Penuh tanpa antrean, kelas Penuh dengan antrean, kelas dengan sesi lampau + presensi sebagian, kelas dengan sesi hari ini).
 
 ### Additional Requirements
@@ -90,7 +105,7 @@ Dari Architecture Spine (dan blocker Sprint 0 dari test design yang disetujui se
 - AD-3: setiap operasi tulis = satu `withWriteTx` (`BEGIN IMMEDIATE`) yang dibuka use-case; tx-step tidak membuka transaksi; semua baca keputusan di dalam `fn` sinkron; tanpa kolom counter; `SQLITE_BUSY` → HTTP 503 `database_busy`.
 - AD-4: satu jalur promosi `promoteFromWaitlist(tx, ctx, classId)` → `promotedCount`, memanggil `assertClassOpen` dulu.
 - AD-5: keputusan pendaftaran + R2 dua lapis (cek aktif di transaksi + unique index parsial; `SQLITE_CONSTRAINT_UNIQUE` → baca ulang → `alreadyActive`); `normalizeEmail` hanya di `src/shared/`.
-- AD-6/AD-20: nilai turunan (status kelas, posisi antrean, sesi berikutnya, kelayakan) dihitung di `domain/` saat baca, dikirim siap tampil lewat DTO di `src/shared/dto.ts`; setiap respons baca menyertakan `today`; klien tidak menghitung aturan.
+- AD-6/AD-20: nilai turunan (status kelas — Selesai bila `max(session_date) <= today` mengikuti PRD revisi, lihat A-9; posisi antrean, sesi berikutnya, kelayakan) dihitung di `domain/` saat baca, dikirim siap tampil lewat DTO di `src/shared/dto.ts`; setiap respons baca menyertakan `today`; klien tidak menghitung aturan.
 - AD-7: `Clock { now(); todayJakarta() }` di `src/server/clock.ts`; `ctx = { nowIso, today }` dibaca setelah `BEGIN IMMEDIATE`; `new Date()`/`Date.now()` dilarang di `domain/` dan `services/`; `KELASKU_FAKE_NOW` hanya saat `NODE_ENV=test` (instan ISO UTC beku, dibaca sekali saat start — B-2a).
 - AD-8: ruang rute `/api/admin/*` (plugin dengan hook auth → 401), `/api/public/*`, `/api/auth/*`; envelope error `{ error: { code, message, fields? } }`; registri kode → pesan Indonesia → status HTTP di `src/shared/errors.ts` (HP-2); hasil bisnis sah = 200; `/api/*` tidak dikenal → 404 envelope; selainnya → `index.html`; fetch wrapper klien satu-satunya pemanggil `fetch` (`network_error`, `unexpected_response`, 401 → `/admin/masuk?next=`).
 - AD-9: sesi admin cookie `kelasku_session` (HttpOnly, SameSite=Lax, Secure bila `COOKIE_SECURE=true`), token acak 32 byte, hash SHA-256 di `admin_sessions`, kedaluwarsa 12 jam; password `scrypt` dengan salt per akun; endpoint tulis menolak Content-Type selain JSON; akun hanya dibuat oleh `npm run admin:create` (idempoten).
@@ -105,10 +120,11 @@ Dari Architecture Spine (dan blocker Sprint 0 dari test design yang disetujui se
 - AD-14: Vitest domain murni; services/data terhadap berkas SQLite sementara nyata; HTTP via `fastify.inject()`; test konkurensi R1/R2/R4/R7 dengan ≥ 2 koneksi dari `worker_threads`; Playwright atas build produksi dengan `NODE_ENV=test`, `KELASKU_FAKE_NOW`, DB baru dari `seed:demo`, dan `@axe-core/playwright` di setiap permukaan IA.
 - B-1 (test design): `createDb(path, { busyTimeoutMs? })` dan `createServices({ db, clock })` bisa diimpor dari worker tanpa Fastify.
 - B-2 (test design): `seed:demo` menyertakan kelas Selesai dengan Terdaftar + Daftar tunggu; kredensial admin seed non-interaktif dari `.env` (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, nama ada di `.env.example` tanpa nilai).
-- HP-1: Vitest dijalankan dengan `TZ=UTC`; Playwright `timezoneId: 'UTC'`.
+- HP-1: Vitest dijalankan dengan `TZ=UTC`; Playwright `timezoneId: 'UTC'`. Tambahan PRD FR-16: test `*.tz.test.ts` juga dijalankan dengan `TZ=Asia/Jakarta` dan `TZ=Asia/Jayapura` (A-12).
+- Produksi HTTPS (NFR-6/NFR-8): reverse proxy TLS di server lembaga + alih HTTP → HTTPS, Fastify di `127.0.0.1`, `COOKIE_SECURE=true` (A-10); prosedur dicatat di runbook deployment.
 - HP-3: fitness test arsitektur statis (hanya `data/` impor `better-sqlite3`; tanpa `new Date()`/`Date.now()` di `domain/`/`services/`; tanpa fungsi waktu SQL di migrasi; `client/` tidak mengimpor `src/server`).
-- Harness konkurensi `runConcurrently(n, task)` dengan barrier `SharedArrayBuffer` + `Atomics.wait`, plus kontrol negatif sekali (varian cek-di-luar-transaksi harus gagal).
-- Konvensi: berkas `kebab-case.ts`, komponen `PascalCase.tsx`, tabel `snake_case` jamak, DTO `camelCase`; logging pino tanpa email/nama/password/token; konfigurasi hanya env (`PORT`, `DATABASE_PATH`, `COOKIE_SECURE`, `NODE_ENV`, `KELASKU_FAKE_NOW`); `.env` di `.gitignore`.
+- Harness konkurensi `runConcurrently(n, task)` dengan barrier `SharedArrayBuffer` + `Atomics.wait`, plus kontrol negatif (varian cek-di-luar-transaksi harus gagal); skenario serentak diulang 50 kali per run CI (PRD FR-8, menggantikan burn-in ×20 di handoff).
+- Konvensi: berkas `kebab-case.ts`, komponen `PascalCase.tsx`, tabel `snake_case` jamak, DTO `camelCase`; logging pino tanpa email/nama/password/token; konfigurasi hanya env (`PORT`, `DATABASE_PATH`, `COOKIE_SECURE`, `NODE_ENV`, `KELASKU_FAKE_NOW`; `HOST` ditambahkan di Story 4.7); `.env` di `.gitignore`.
 - Indeks minimum: `registrations(class_id, status, id)`, `registrations(email)`, `class_sessions(class_id, session_date)` unik, `attendance(class_session_id)`; tanpa N+1.
 - Operasi: `npm run backup` (`db.backup`), prosedur upgrade/pemulihan sesuai spine; `seed:perf` + skrip ukur p95 (HP-5) sebelum rilis.
 - `data-testid` hanya untuk baris tabel tanpa nama aksesibel unik: `class-row-{publicCode}`, `registration-row-{registrationId}`, `attendance-row-{registrationId}`, `recap-cell-{registrationId}-{YYYY-MM-DD}`, `recap-eligibility-{registrationId}`.
@@ -119,7 +135,7 @@ UX-DR1: Implementasikan semua token DESIGN.md (warna, tipografi, rounded, spacin
 UX-DR2: Komponen `PageLayout`: landmark `header`/`nav`/`main`, satu `<h1>`, tautan "Lewati ke konten utama" pertama di urutan fokus, fokus pindah ke `<h1>` saat ganti rute, `<title>` "{Halaman} — Kelasku"; varian peserta (kolom tengah maks 560 px, margin 16 px, kepala "Kelasku" tanpa navigasi global) dan admin.
 UX-DR3: Komponen `AdminLayout`: top bar 48 px ("Kelasku", tautan "Sesi hari ini" bila FR17 aktif dan "Kelas" dengan indikator aktif 2 px, email admin, tombol "Keluar"); cek `GET /api/auth/session`; tanpa sesi → alihkan ke `/admin/masuk?next=`; breadcrumb "Kelas › {judul} › {halaman}" di halaman bawah kelas.
 UX-DR4: Komponen `Badge` status dengan ikon dekoratif (`aria-hidden`) + teks Glosarium untuk varian Terdaftar, Daftar tunggu, Dibatalkan, Penuh, Selesai, Layak, Belum layak, Tidak mungkin layak; non-interaktif; warna sesuai DESIGN.md (Daftar tunggu kuning, bukan merah).
-UX-DR5: Komponen `DataTable`: `<table>` semantik dengan `<caption>` (boleh tersembunyi visual), `<th scope>`, baris bisa diklik dengan tautan nyata di sel judul, angka rata kanan tabular, hover `surface`, tanpa zebra, tanpa paginasi sampai 50 baris, tanpa sort per kolom; wadah bergulir horizontal di bawah 1024 px.
+UX-DR5: Komponen `DataTable`: `<table>` semantik dengan `<caption>` (boleh tersembunyi visual), `<th scope>`, baris bisa diklik dengan tautan nyata di sel judul, angka rata kanan tabular, hover `surface`, tanpa zebra, tanpa paginasi (PRD FR-4 revisi; menggantikan "sampai 50 baris"), tanpa sort per kolom; wadah bergulir horizontal di bawah 1024 px.
 UX-DR6: Komponen `Field` + `ErrorSummary`: label terlihat di atas input, penanda "(wajib)" berupa teks, validasi saat submit, error server di bawah kolom dengan `aria-describedby` + `aria-invalid`, ringkasan error `role="alert"` di atas formulir dengan tautan ke setiap kolom dan fokus pindah ke ringkasan; nilai yang sudah diisi tetap ada saat error; tombol submit nonaktif dengan label "…ing" selama request.
 UX-DR7: Komponen `Toast`: latar `text`, kanan bawah (admin) / bawah tengah (peserta), `aria-live="polite"`, hilang 5 detik, tidak mencuri fokus, hanya untuk sukses (tidak pernah untuk error).
 UX-DR8: Komponen `CopyLinkButton`: menyalin URL lengkap (`window.location.origin + /daftar/ + publicCode`), label berubah "Tautan disalin" selama 3 detik diumumkan `aria-live="polite"`, URL juga tampil sebagai teks yang bisa dipilih sebagai cadangan.
@@ -131,7 +147,7 @@ UX-DR13: Penanda promosi: label `info` "Naik dari daftar tunggu · {9 Nov 2026, 
 UX-DR14: Bagian Dibatalkan memakai `<details>` tertutup bawaan dengan ringkasan "Dibatalkan (N)"; bagian Terdaftar dan Daftar tunggu selalu tampil dengan teks kosong ("Belum ada peserta terdaftar. Bagikan tautan pendaftaran untuk mulai menerima peserta." / "Tidak ada daftar tunggu").
 UX-DR15: Daftar sesi di halaman kelas admin: satu baris per tanggal dengan status presensi ("Tersimpan", "Belum diisi", "Bisa diisi mulai {tanggal}"), penanda "Hari ini", tautan "Isi presensi"/"Ubah presensi" hanya untuk sesi yang sudah tiba (dipakai penuh di epik presensi; Epik 1 menampilkan tanggal + penanda saja).
 UX-DR16: Kartu peserta di halaman status: satu kartu per pendaftaran aktif urut tanggal sesi pertama, badge status, "Hadir x dari y sesi", badge kelayakan, tombol "Batalkan pendaftaran" hanya bila Dibuka, teks pengganti untuk Selesai.
-UX-DR17: Toggle presensi: checkbox 20 px area klik 32 px dengan label "Hadir" dan nama aksesibel "Hadir — {nama}", teks "Belum dicatat" untuk peserta tanpa catatan, penghitung langsung "Hadir: x dari y", teks bawaan FR18.
+UX-DR17: Kontrol presensi (menggantikan checkbox di DESIGN.md/EXPERIENCE.md, lihat A-9): per peserta satu `fieldset` grup radio dengan `legend` nama peserta dan opsi "Hadir", "Tidak hadir", dan "Belum dicatat" (opsi terakhir hanya untuk peserta tanpa catatan tersimpan); radio 20 px dengan area klik ≥ 32 px, `{rounded.full}`, batas `{colors.border-strong}`; `Tab` berpindah antargrup, panah memilih opsi; nilai dibedakan teks, bukan warna saja; penghitung langsung "Hadir: x · Tidak hadir: y · Belum dicatat: z"; teks bawaan FR18.
 UX-DR18: Halaman peserta: teks 16 px, target sentuh ≥ 44 px, tombol selebar penuh di < 640 px, tanpa gulir horizontal di 360 px, reflow 320 px CSS dan zoom 200%, zoom tidak dinonaktifkan.
 UX-DR19: Halaman admin: kontainer maks 1280 px, margin 24 px; tabel Kelas empat kolom tanpa gulir horizontal di 1366×768; grid rekap 5 sesi tanpa gulir, > ±8 sesi bergulir dengan kolom nama menempel.
 UX-DR20: Peringatan perubahan belum tersimpan (`useBlocker` + `beforeunload`) di Ubah kelas dan Presensi sesi.
@@ -167,9 +183,9 @@ FR22: Epic 4 — Ekspor rekap CSV
 NFR1: Epic 1 (harness konkurensi, R1/R2/R7) dan Epic 2 (R4)
 NFR2: Epic 1 (Clock), Epic 3 (R5)
 NFR3, NFR4, NFR5: semua story UI (Definition of Done + axe)
-NFR6: Epic 1 Story 1.1
-NFR7: Epic 4 (story bukti kinerja)
-NFR8: Epic 1 (auth, validasi zod, `.env`)
+NFR6: Epic 1 Story 1.1 (SQLite lokal), Epic 4 Story 4.7 (produksi satu server lewat HTTPS)
+NFR7: Epic 1 Story 1.9 (tabel kelas pada ±240 kelas), Epic 4 Story 4.6 (bukti kinerja)
+NFR8: Epic 1 (auth, validasi zod, `.env`), Epic 4 Story 4.7 (HTTPS + alih HTTP)
 NFR9: semua story (test berlabel ID aturan); seed di Epic 1, diperluas di Epic 3
 
 ## Epic List
@@ -177,7 +193,7 @@ NFR9: semua story (test berlabel ID aturan); seed di Epic 1, diperluas di Epic 3
 ### Epic 1: Kelas & Pendaftaran Berkuota (R1–R3, R7)
 Admin bisa masuk, membuat dan mengubah kelas berkuota, melihat tabel kelas dan isi setiap kelas, serta membagikan tautan pendaftaran. Peserta bisa mendaftar sendiri dari ponsel tanpa akun dan langsung tahu statusnya: Terdaftar atau Daftar tunggu #N. Sistem menjamin kuota tidak pernah terlampaui (R1), satu pendaftaran aktif per email (R2), antrean FIFO (R3), dan kuota tidak bisa diturunkan di bawah jumlah Terdaftar (R7), termasuk saat permintaan datang bersamaan. Epik ini juga meletakkan fondasi repo, data, waktu, dan test yang dipakai semua epik berikutnya.
 **FRs covered:** FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR10
-**Catatan:** Story fondasi (scaffold, data & clock, harness konkurensi, kerangka UI, seed e2e) mengikuti blocker Sprint 0 test design (B-1, B-2, HP-1..HP-3) dan dikerjakan pertama di epik ini. Risiko utama: R-001, R-002 (P0).
+**Catatan:** Story fondasi (scaffold, data & clock, harness konkurensi, kerangka UI, seed e2e) mengikuti blocker Sprint 0 test design (B-1, B-2, HP-1..HP-3) dan dikerjakan pertama di epik ini. Risiko utama: R-001, R-002 (P0). Epik ini adalah tolok ukur keputusan potong di akhir hari ke-3 (lihat Potongan cakupan).
 
 ### Epic 2: Pembatalan, Promosi Otomatis & Status Peserta (R4)
 Peserta bisa memeriksa status semua pendaftaran aktifnya lewat email dan membatalkan sendiri; admin bisa membatalkan atas nama peserta. Saat peserta Terdaftar batal, kepala daftar tunggu naik otomatis dalam transaksi yang sama, tanpa campur tangan admin.
@@ -192,7 +208,8 @@ Admin mencatat dan mengoreksi kehadiran satu sesi dengan satu kali simpan, hanya
 ### Epic 4: Kelayakan Sertifikat, Rekap & Ekspor CSV (R6)
 Admin melihat grid rekap kehadiran dan status kelayakan sertifikat setiap peserta, lalu mengekspornya ke CSV pada hari sesi terakhir. Peserta melihat jumlah kehadiran dan kelayakannya sendiri di halaman status.
 **FRs covered:** FR19, FR20, FR21, FR22, FR14 (bagian kehadiran dan kelayakan)
-**Catatan:** Satu fungsi domain kelayakan dipakai grid, status peserta, dan CSV (AD-6). Ditutup dengan bukti kinerja NFR7. Risiko utama: R-006, R-012, R-014.
+**NFRs ditutup:** NFR6 dan NFR8 (produksi HTTPS, Story 4.7), NFR7 (Story 4.6).
+**Catatan:** Satu fungsi domain kelayakan dipakai grid, status peserta, dan CSV (AD-6). Ditutup dengan bukti kinerja NFR7 dan penyajian produksi lewat HTTPS. Risiko utama: R-006, R-012, R-014.
 
 ## Epic 1: Kelas & Pendaftaran Berkuota (R1–R3, R7)
 
@@ -244,7 +261,11 @@ Sehingga semua story berikutnya menghitung tanggal dan menampilkan pesan dengan 
 **Given** `src/server/clock.ts`
 **When** `createClock()` dipanggil dan `todayJakarta()` dibaca
 **Then** hasilnya tanggal kalender Asia/Jakarta `YYYY-MM-DD` lewat `Intl.DateTimeFormat`, terlepas dari zona proses
-**And** test unit dengan `TZ=UTC` membuktikan: instan `2026-11-09T16:30:00.000Z` (23.30 WIB) → `2026-11-09`; `2026-11-09T17:00:00.000Z` (00.00 WIB) → `2026-11-10`; `2026-11-09T23:00:00.000Z` (06.00 WIB) → `2026-11-10`
+**And** test `clock.tz.test.ts` membuktikan: `2026-11-09T17:30:00.000Z` (00.30 WIB 10 Nov, UTC masih 9 Nov) → `2026-11-10`; `2026-11-09T23:59:00.000Z` (06.59 WIB 10 Nov) → `2026-11-10`; `2026-11-10T16:30:00.000Z` (23.30 WIB 10 Nov, Asia/Jayapura sudah 11 Nov) → `2026-11-10`; `2026-11-09T17:00:00.000Z` (00.00 WIB) → `2026-11-10`
+
+**Given** skrip `npm test`
+**When** dijalankan
+**Then** semua berkas `*.tz.test.ts` dijalankan tiga kali, masing-masing dengan `TZ=UTC`, `TZ=Asia/Jakarta`, dan `TZ=Asia/Jayapura`, dan hasilnya identik di ketiga zona (A-12); test lain tetap `TZ=UTC`
 
 **Given** `NODE_ENV=test` dan `KELASKU_FAKE_NOW=2026-11-09T03:00:00.000Z`
 **When** `createClock()` dipanggil lalu `now()` dibaca dua kali dengan jeda
@@ -296,8 +317,16 @@ Sehingga aturan R1, R2, R4, dan R7 di story berikutnya bisa ditegakkan dan diuji
 
 **Given** helper test `runConcurrently(n, task)` yang menjalankan `n` worker dengan koneksi sendiri ke berkas DB yang sama dan memulai serentak lewat barrier `SharedArrayBuffer` + `Atomics.wait`
 **When** kontrol negatif dijalankan: tabel uji lokal dengan batas 5, varian yang mengecek jumlah di luar transaksi lalu menulis, 20 worker
-**Then** harness mendeteksi pelanggaran batas (jumlah > 5) setidaknya sekali dalam burn-in, membuktikan harness memang menangkap race
-**And** varian yang sama di dalam `withWriteTx` menghasilkan tepat 5 baris di setiap ulangan dari burn-in ×20
+**Then** harness mendeteksi pelanggaran batas (jumlah > 5) setidaknya sekali dalam 50 ulangan, membuktikan harness memang menangkap race
+**And** varian yang sama di dalam `withWriteTx` menghasilkan tepat 5 baris di setiap ulangan dari 50 ulangan, tanpa satu pun worker menerima error (termasuk `database_busy`) dengan `busy_timeout` bawaan
+
+**Given** helper `repeatConcurrent(times, scenario)` dan konstanta `CONCURRENCY_REPEATS = 50`
+**When** dipakai oleh test R1/R2/R4/R7 di story berikutnya
+**Then** setiap skenario serentak dijalankan 50 kali dalam satu run `npm test` (dan CI), dan kegagalan satu ulangan menggagalkan test dengan nomor ulangannya
+
+**Given** helper `startTestServer()` yang menjalankan Fastify sungguhan pada port acak (`listen({ port: 0 })`) di atas berkas DB sementara
+**When** dipakai test HTTP serentak
+**Then** test bisa mengirim N permintaan `fetch` sekaligus ke API yang sedang berjalan dan mengumpulkan semua status HTTP (A-11)
 
 ### Story 1.4: API masuk dan keluar admin
 
@@ -400,8 +429,12 @@ Sehingga saya bisa membuka kelas untuk pendaftaran dan membagikannya ke grup Wha
 
 **Given** migrasi baru membuat `classes` (`public_code` unik 10 karakter base64url, `title`, `quota` dengan `CHECK quota >= 1`, `created_at`/`updated_at` ber-`CHECK` GLOB) dan `class_sessions` (`class_id` FK, `session_date TEXT YYYY-MM-DD`, unik `(class_id, session_date)`)
 **When** fungsi domain `validateSessionDates(dates, today)` dipanggil
-**Then** ia menolak daftar kosong, tanggal ganda (menyebut tanggalnya, mis. "Tanggal 9 Nov 2026 sudah ada di kelas ini" dengan kunci `fields` `sessionDates.<index>`), dan daftar tanpa satu pun tanggal ≥ `today`; tanggal lampau lain diterima
-**And** test unit mencakup batas `today` WIB (tanggal = today diterima)
+**Then** ia menolak daftar kosong, tanggal ganda (menyebut tanggalnya, mis. "Tanggal 9 Nov 2026 sudah ada di kelas ini" dengan kunci `fields` `sessionDates.<index>`), dan daftar tanpa satu pun tanggal **setelah** `today` (kelas seperti itu lahir Selesai); tanggal hari ini dan tanggal lampau lain diterima selama ada satu tanggal > `today`
+**And** test unit mencakup batas `today` WIB: `[today]` saja ditolak; `[today, today+1]` diterima; `[today-7, today+1]` diterima
+
+**Given** fungsi domain murni `classStatus({ sessionDates, today })`
+**When** diuji
+**Then** kelas Selesai bila `max(session_date) <= today` (termasuk sepanjang tanggal sesi terakhir), selain itu Dibuka (Penuh ditambahkan di Story 1.7)
 
 **Given** admin masuk
 **When** `POST /api/admin/classes` dengan judul, tanggal sesi, dan kuota valid
@@ -419,7 +452,7 @@ Sehingga saya bisa membuka kelas untuk pendaftaran dan membagikannya ke grup Wha
 **Given** kelas berhasil disimpan
 **When** respons diterima
 **Then** admin dibawa ke `/admin/kelas/{id}` dengan toast "Kelas tersimpan" (`aria-live="polite"`, hilang 5 detik, tidak mencuri fokus)
-**And** kepala kelas menampilkan judul sebagai `<h1>`, badge status kelas (Dibuka/Selesai dari fungsi domain `classStatus` yang lahir di story ini; Penuh ditambahkan di Story 1.7), kuota, daftar tanggal sesi berformat "Senin, 9 Nov 2026" dengan penanda "Hari ini" untuk sesi hari ini, dan tautan pendaftaran `{origin}/daftar/{publicCode}` sebagai teks yang bisa dipilih
+**And** kepala kelas menampilkan judul sebagai `<h1>`, badge status kelas (Dibuka/Selesai dari `classStatus`), kuota, daftar tanggal sesi berformat "Senin, 9 Nov 2026" dengan penanda "Hari ini" untuk sesi hari ini, dan tautan pendaftaran `{origin}/daftar/{publicCode}` sebagai teks yang bisa dipilih
 
 **Given** tombol "Salin tautan"
 **When** ditekan
@@ -450,7 +483,7 @@ Sehingga saya tahu posisi saya, dan kelas tidak pernah melebihi kuota walaupun b
 
 **Given** fungsi domain murni `classStatus` (diperluas dengan Penuh), keputusan pendaftaran, dan posisi antrean
 **When** diuji sebagai unit
-**Then** status kelas Selesai bila `max(session_date) < today`, Penuh bila Dibuka dan Terdaftar = kuota, selain itu Dibuka; keputusan = Terdaftar hanya bila `registered < quota` dan antrean kosong; posisi antrean 1-based menurut `id` naik
+**Then** status kelas Selesai bila `max(session_date) <= today`, Penuh bila Dibuka dan Terdaftar = kuota, selain itu Dibuka; keputusan = Terdaftar hanya bila `registered < quota` dan antrean kosong; posisi antrean 1-based menurut `id` naik
 
 **Given** `GET /api/public/classes/:code`
 **When** kode dikenal
@@ -458,12 +491,21 @@ Sehingga saya tahu posisi saya, dan kelas tidak pernah melebihi kuota walaupun b
 
 **Given** `POST /api/public/classes/:code/registrations` dengan `{ name, email }`
 **When** nama 1–100 karakter dan email berformat valid
-**Then** dalam satu `withWriteTx`: `assertClassOpen` → cari pendaftaran aktif `(class_id, normalizeEmail(email))` → keputusan Terdaftar/Daftar tunggu → insert dengan `created_at = ctx.nowIso`; respons 200 `{ status, waitlistPosition?, nextSessionDate?, alreadyActive: false, registrationRef }`
+**Then** dalam satu `withWriteTx`: `assertClassOpen` → cari pendaftaran aktif `(class_id, normalizeEmail(email))` → keputusan Terdaftar/Daftar tunggu → insert dengan `created_at = ctx.nowIso` dan `public_ref` 10 karakter base64url dari `crypto.randomBytes`; respons 200 `{ status, waitlistPosition?, nextSessionDate?, alreadyActive: false, registrationRef }`
 **And** input tidak valid → 400 `validation_error` dengan `fields`
+**And** respons publik tidak pernah memuat ID internal pendaftaran atau kelas; `registrationRef` acak dan tidak berurutan (test: 1.000 ref unik, tidak ada yang bisa diturunkan dari ref sebelumnya secara berurutan)
 
 **Given** kelas kuota 5 dan 20 email berbeda
-**When** 20 pendaftaran dijalankan bersamaan lewat `runConcurrently` (koneksi terpisah)
-**Then** tepat 5 Terdaftar dan 15 Daftar tunggu, di setiap ulangan burn-in ×20 — test `R1: 20 parallel registrations to a quota-5 class yield exactly 5 registered`
+**When** 20 pendaftaran dijalankan bersamaan lewat `runConcurrently` (koneksi terpisah), diulang 50 kali
+**Then** di setiap ulangan: tepat 5 Terdaftar, tepat 15 Daftar tunggu dengan posisi 1–15 tanpa celah maupun duplikat, dan tidak ada worker yang menerima error — test `R1: 20 parallel registrations to a quota-5 class yield exactly 5 registered`
+
+**Given** server berjalan dari `startTestServer()` dan kelas kuota 5
+**When** 20 permintaan `POST /api/public/classes/:code/registrations` dengan email berbeda dikirim serentak lewat HTTP, diulang 50 kali
+**Then** ke-20 respons berstatus 200 (tidak ada 5xx, termasuk 503 `database_busy`), tepat 5 berstatus Terdaftar dan 15 Daftar tunggu dengan `waitlistPosition` 1–15 tanpa celah maupun duplikat — test `R1: 20 concurrent HTTP registrations all succeed without 5xx and fill the quota exactly`
+
+**Given** mutation check R1 (A-11)
+**When** test yang sama dijalankan terhadap varian use-case yang membaca jumlah Terdaftar di luar `withWriteTx` lalu menulis di transaksi terpisah
+**Then** assertion R1 gagal setidaknya sekali dalam 50 ulangan — test `R1: mutation check — non-atomic quota check is caught by the concurrency test`
 
 **Given** email "Budi@Mail.com " sudah aktif di kelas
 **When** "budi@mail.com" mendaftar lagi
@@ -471,15 +513,17 @@ Sehingga saya tahu posisi saya, dan kelas tidak pernah melebihi kuota walaupun b
 
 **Given** dua permintaan identik dikirim bersamaan
 **When** keduanya diproses dari koneksi berbeda
-**Then** hanya satu baris aktif tercipta, keduanya mendapat 200, dan `SQLITE_CONSTRAINT_UNIQUE` (bila terjadi) dipetakan ke bentuk `alreadyActive`, bukan 500 — test `R2: concurrent duplicate registrations create one row`
+**Then** hanya satu baris aktif tercipta, keduanya mendapat 200 dengan status yang sama (satu `alreadyActive: false`, satu `alreadyActive: true`), dan `SQLITE_CONSTRAINT_UNIQUE` (bila terjadi) dipetakan ke bentuk `alreadyActive`, bukan 5xx; dibuktikan lewat worker dan lewat HTTP ke `startTestServer()`, masing-masing 50 ulangan — test `R2: concurrent duplicate registrations create one row`
+**And** mutation check: varian tanpa cek aktif di transaksi dan tanpa unique index parsial membuat test gagal — test `R2: mutation check — removing the in-transaction check and partial unique index is caught`
 
 **Given** kelas Penuh dengan daftar tunggu tidak kosong, atau kuota belum penuh tetapi antrean masih ada
 **When** pendaftar baru datang
 **Then** ia masuk ekor daftar tunggu — test `R3: a new registration is waitlisted while the waitlist is non-empty` dan `R3: waitlist is FIFO by registration time, id breaks ties`
 
-**Given** kelas Selesai (tanggal sesi terakhir < `today` WIB, diuji dengan clock palsu)
+**Given** kelas Selesai (tanggal sesi terakhir ≤ `today` WIB, diuji dengan clock palsu)
 **When** pendaftaran dikirim
 **Then** respons 409 `registration_closed` dengan pesan "Pendaftaran kelas ini sudah ditutup" dan tidak ada baris tercipta
+**And** test `FR7: registration closes at 00.00 WIB on the last session date` (`*.tz.test.ts`) dengan sesi terakhir 10 Nov: `2026-11-09T16:59:00.000Z` (23.59 WIB 9 Nov) diterima; `2026-11-09T17:00:00.000Z` (00.00 WIB 10 Nov) dan `2026-11-10T16:30:00.000Z` (23.30 WIB 10 Nov) ditolak
 
 **Given** `seed:demo`
 **When** dijalankan
@@ -537,14 +581,15 @@ Sebagai admin (Rina),
 Saya ingin melihat semua kelas dalam satu tabel padat,
 Sehingga dalam sekilas saya tahu kelas mana yang penuh, berapa yang antre, dan kapan sesi berikutnya (FR4).
 
-**Mencakup:** FR4, AD-6, AD-20, UX-DR5, UX-DR19, P1-010, P2-007, P0-009, konvensi Kinerja (tanpa N+1).
+**Mencakup:** FR4 (revisi: tampilan 30 hari + "Tampilkan semua kelas Selesai"), NFR7 (smoke), AD-6, AD-20, UX-DR5, UX-DR19, P1-010, P2-007, P0-009, konvensi Kinerja (tanpa N+1).
 
 **Acceptance Criteria:**
 
 **Given** `GET /api/admin/classes`
 **When** dipanggil
-**Then** respons memuat per kelas: `id`, `publicCode`, judul, `nextSessionDate` (tanggal sesi terdekat ≥ `today`, atau null), status kelas, jumlah Terdaftar, kuota, jumlah Daftar tunggu, plus `today`, yang semuanya dihitung oleh fungsi domain AD-6
-**And** urutan dari server: kelas dengan sesi berikutnya paling dekat di atas, kelas Selesai di bawah; data diambil dengan jumlah query tetap per request (tanpa N+1), dibuktikan oleh test yang menghitung query untuk 50 kelas
+**Then** respons memuat per kelas: `id`, `publicCode`, judul, `nextSessionDate` (tanggal sesi terdekat ≥ `today`; null untuk kelas Selesai, termasuk pada hari sesi terakhirnya), `lastSessionDate`, status kelas, jumlah Terdaftar, kuota, jumlah Daftar tunggu, plus `today` dan `hiddenFinishedCount`, yang semuanya dihitung oleh fungsi domain AD-6
+**And** tampilan bawaan memuat semua kelas Dibuka ditambah kelas Selesai yang `lastSessionDate` dalam 30 hari terakhir (`today − 30 ≤ lastSessionDate ≤ today`); `GET /api/admin/classes?finished=all` memuat semua kelas
+**And** urutan dari server: kelas dengan sesi berikutnya paling dekat di atas, lalu kelas Selesai dengan `lastSessionDate` terbaru lebih dulu; data diambil dengan jumlah query tetap per request (tanpa N+1), dibuktikan oleh test yang menghitung query untuk 240 kelas
 
 **Given** komponen `DataTable`
 **When** halaman `/admin/kelas` menampilkan kelas
@@ -555,9 +600,17 @@ Sehingga dalam sekilas saya tahu kelas mana yang penuh, berapa yang antre, dan k
 **When** halaman dibuka
 **Then** tampil "Belum ada kelas." dengan tombol utama "Buat kelas"
 
-**Given** 50 kelas seed
-**When** halaman dibuka di 1366×768
-**Then** keempat kolom terlihat tanpa gulir horizontal dan tanpa paginasi
+**Given** ada kelas Selesai yang tersembunyi dari tampilan bawaan
+**When** halaman dibuka
+**Then** di bawah tabel tampil tautan "Tampilkan semua kelas Selesai ({hiddenFinishedCount})"; menekannya memuat semua kelas di tabel yang sama tanpa paginasi, fokus tetap di area tabel, dan tidak ada kelas yang hilang dari UI
+
+**Given** kelas yang tanggal sesi terakhirnya hari ini
+**When** tabel ditampilkan
+**Then** kolom Sesi berikutnya menampilkan badge "Selesai" (PRD FR-4)
+
+**Given** 240 kelas di DB uji (sebagian besar Selesai)
+**When** kedua tampilan dibuka di 1366×768
+**Then** keempat kolom terlihat tanpa gulir horizontal dan tanpa paginasi, dan test integrasi mencatat waktu respons server kedua tampilan di bawah 1 detik (smoke NFR7; bukti p95 penuh di Story 4.6)
 
 **Given** e2e smoke UJ-1 + UJ-2 (P0-009)
 **When** admin membuat kelas kuota 2, dua peserta mendaftar lewat tautan, lalu admin kembali ke Kelas
@@ -586,7 +639,7 @@ Sehingga saya tidak perlu menghitung dari chat dan bisa mengabari peserta yang n
 **When** bagian Terdaftar ditampilkan
 **Then** baris itu memuat penanda `info` "Naik dari daftar tunggu · {waktu promosi}"
 
-**Given** bagian Dibatalkan
+**Given** bagian Dibatalkan (✂2: boleh ditunda bila potongan kedua diterapkan; respons API tetap memuat `cancelled`)
 **When** halaman dibuka
 **Then** bagian memakai `<details>` tertutup bawaan dengan ringkasan "Dibatalkan (N)", dan pembatal tampil "peserta" atau "admin"
 
@@ -618,23 +671,24 @@ Sehingga kuota tidak pernah turun di bawah jumlah Terdaftar dan kursi baru langs
 **Then** respons 409 `quota_below_registered` dengan pesan "Kuota minimal 14 (jumlah terdaftar saat ini)" (N sebenarnya) di `fields.quota`, dan tidak ada perubahan tersimpan — test `R7: lowering quota below registered count is rejected with the minimum in the message`
 
 **Given** kuota sedang diturunkan sementara pendaftaran baru masuk bersamaan
-**When** keduanya dijalankan lewat `runConcurrently`
-**Then** di setiap ulangan burn-in ×20, jumlah Terdaftar tidak pernah melebihi kuota akhir — test `R7: concurrent quota decrease and registration never leave registered above quota` (P0-005)
+**When** keduanya dijalankan lewat `runConcurrently`, diulang 50 kali
+**Then** di setiap ulangan jumlah Terdaftar tidak pernah melebihi kuota akhir dan tidak ada respons 5xx — test `R7: concurrent quota decrease and registration never leave registered above quota` (P0-005)
+**And** mutation check: varian yang membaca `COUNT(Terdaftar)` di luar transaksi ubah kuota membuat test gagal
 
 **Given** tx-step `promoteFromWaitlist(tx, ctx, classId)` di `src/server/services/`
 **When** kuota dinaikkan dari 5 ke 8 pada kelas dengan 5 Terdaftar dan 2 Daftar tunggu
 **Then** kedua kepala antrean (urut `id`) menjadi Terdaftar dengan `promoted_at = ctx.nowIso` dalam transaksi yang sama, `promotedCount = 2`, dan update status berpenjaga `AND status='waitlisted'` dengan cek `changes === 1` — test `R3: raising quota promotes the head of the waitlist in the same transaction`
 **And** `promoteFromWaitlist` memanggil `assertClassOpen` lebih dulu dan mempromosikan `min(kuota − Terdaftar, panjang antrean)`
 
-**Given** kelas Selesai
+**Given** kelas Selesai, termasuk pada tanggal sesi terakhirnya
 **When** kuota atau tanggal sesi diubah
-**Then** respons 409 `class_finished` tanpa perubahan; mengubah judul saja tetap berhasil (P1-008)
+**Then** respons 409 `class_finished` tanpa perubahan dan tanpa promosi; mengubah judul saja tetap berhasil (P1-008)
 
 **Given** perubahan judul
 **When** disimpan
 **Then** `public_code` tidak berubah, sehingga tautan pendaftaran tetap sama (FR6)
 
-**Given** perubahan tanggal yang menghapus satu-satunya tanggal, membuat tanggal ganda, atau menyisakan nol tanggal ≥ `today`
+**Given** perubahan tanggal yang menghapus satu-satunya tanggal, membuat tanggal ganda, atau menyisakan nol tanggal setelah `today`
 **When** disimpan
 **Then** respons 400 `validation_error` dengan pesan yang sama seperti buat kelas
 
@@ -693,7 +747,8 @@ Sehingga kursi kosong terisi tanpa campur tangan admin dan kuota tetap terjaga (
 **Given** `POST /api/public/cancellations` dengan `{ registrationRef, email }`
 **When** keduanya cocok dengan satu pendaftaran (email dinormalisasi)
 **Then** pembatalan tercatat dengan `cancelled_by = 'participant'` dan respons 200 DTO `CancellationResult` `{ alreadyCancelled, classTitle, promotedCount }`
-**And** `registrationRef` dan email yang tidak cocok → 404 `registration_not_found`; email tidak pernah ada di URL
+**And** kedua masukan wajib; email dibandingkan setelah `normalizeEmail`; email tidak cocok **atau** `registrationRef` tidak dikenal → 404 `registration_not_found` dengan pesan identik "Pendaftaran tidak ditemukan" yang tidak menyebut bagian mana yang salah, tanpa perubahan data dan tanpa promosi — test `FR11: wrong email and unknown ref are indistinguishable and change nothing`
+**And** email tidak pernah ada di URL; ID internal tidak diterima maupun dikembalikan oleh rute publik; tanpa rate limit (PRD §9)
 
 **Given** `POST /api/admin/registrations/:id/cancellation` dengan sesi admin
 **When** dipanggil
@@ -711,13 +766,14 @@ Sehingga kursi kosong terisi tanpa campur tangan admin dan kuota tetap terjaga (
 **When** dibatalkan lagi oleh peserta atau admin
 **Then** respons 200 `{ alreadyCancelled: true, promotedCount: 0 }` tanpa tulis, dan `cancelled_at`/`cancelled_by` tetap milik pembatalan pertama — test `R4: cancelling an already-cancelled registration is a no-op and promotes nobody`
 
-**Given** beberapa pembatalan Terdaftar berbeda, serta peserta + admin membatalkan pendaftaran yang sama, dijalankan bersamaan lewat `runConcurrently`
-**When** burn-in ×20 dijalankan
-**Then** jumlah Terdaftar tidak pernah melebihi kuota, tidak ada peserta yang dipromosikan dua kali, dan pembatalan ganda hanya memicu satu promosi — test `R4: concurrent cancellations never push registered count above quota` (P0-003, P0-004)
+**Given** beberapa pembatalan Terdaftar berbeda, serta peserta + admin membatalkan pendaftaran yang sama, dijalankan bersamaan lewat `runConcurrently` dan lewat HTTP ke `startTestServer()`
+**When** masing-masing diulang 50 kali
+**Then** jumlah Terdaftar tidak pernah melebihi kuota, tidak ada peserta yang dipromosikan dua kali, pembatalan ganda hanya memicu satu promosi, dan semua permintaan berhasil tanpa 5xx — test `R4: concurrent cancellations never push registered count above quota` (P0-003, P0-004)
+**And** mutation check: varian yang memanggil `promoteFromWaitlist` di transaksi terpisah setelah pembatalan membuat test gagal — test `R4: mutation check — promotion outside the cancellation transaction is caught`
 
-**Given** kelas Selesai (clock palsu)
+**Given** kelas Selesai, termasuk sepanjang tanggal sesi terakhirnya (clock palsu, `*.tz.test.ts`)
 **When** pembatalan dikirim lewat rute publik atau admin
-**Then** respons 409 `class_finished` dengan pesan "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan", tanpa perubahan dan tanpa promosi
+**Then** respons 409 `class_finished` dengan pesan "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan", tanpa perubahan dan tanpa promosi; pembatalan pukul 23.59 WIB sehari sebelumnya diterima
 
 ### Story 2.2: Halaman status peserta lewat email
 
@@ -774,10 +830,11 @@ Sehingga kursi saya bisa dipakai orang lain tanpa harus menghubungi koordinator 
 **Then** dialog menampilkan "Batalkan pendaftaran di kelas {judul}? Tindakan ini tidak bisa dibatalkan." dengan tombol "Kembali" dan tombol bahaya "Ya, batalkan"; tombol bahaya tidak pernah muncul di langkah pertama
 
 **Given** peserta memilih "Ya, batalkan"
-**When** pembatalan berhasil
+**When** klien mengirim `POST /api/public/cancellations` dengan `registrationRef` kartu itu dan email yang dipakai untuk memuat halaman status
+**And** pembatalan berhasil
 **Then** kartu itu hilang dari daftar, alert success "Pendaftaran di {judul} dibatalkan." tampil di atas daftar, menerima fokus, dan diumumkan pembaca layar
 
-**Given** kelas Selesai
+**Given** kelas Selesai, termasuk pada tanggal sesi terakhirnya
 **When** kartu ditampilkan
 **Then** tombol "Batalkan pendaftaran" tidak ada dan diganti teks "Kelas sudah selesai"; bila API tetap mengembalikan `class_finished`, alert danger "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan" tampil
 
@@ -811,7 +868,7 @@ Sehingga saya bisa menindaklanjuti peserta yang mengabari lewat telepon atau cha
 **When** berhasil
 **Then** halaman dimuat ulang: pendaftaran itu pindah ke bagian Dibatalkan dengan pembatal "admin", kepala antrean tampil di bagian Terdaftar dengan penanda "Naik dari daftar tunggu · {waktu}", dan toast "Pendaftaran dibatalkan. 1 peserta naik dari daftar tunggu." muncul
 
-**Given** kelas Selesai
+**Given** kelas Selesai, termasuk pada tanggal sesi terakhirnya
 **When** halaman ditampilkan
 **Then** tombol "Batalkan" tidak tampil; bila API mengembalikan `class_finished`, alert danger "Kelas sudah selesai; pendaftaran tidak bisa dibatalkan" tampil sebaris
 
@@ -844,12 +901,13 @@ Sehingga kehadiran tercatat utuh dan sesi yang belum tiba tidak bisa diisi, term
 
 **Given** `PUT /api/admin/classes/:id/sessions/:date/attendance` dengan `{ entries: [{ registrationId, present }] }`
 **When** tanggal sesi ≤ `ctx.today`
-**Then** dalam satu `withWriteTx` tanggal di-resolve ke `class_sessions`, semua baris di-upsert, baris dengan `present: null` tidak ditulis, dan respons mengembalikan state formulir terbaru
+**Then** dalam satu `withWriteTx` tanggal di-resolve ke `class_sessions`, entri `present: true` (Hadir) dan `present: false` (Tidak hadir) di-upsert, entri `present: null` (Belum dicatat) tidak menulis apa pun, dan respons mengembalikan state formulir terbaru
+**And** catatan yang sudah tersimpan tidak pernah dihapus: entri `null` untuk peserta yang sudah punya catatan membiarkan catatannya tetap (A-13); koreksi `true ↔ false` diperbolehkan — test `FR15: saving leaves unrecorded participants without a record`
 
 **Given** tanggal sesi > `ctx.today`
 **When** PUT dikirim
 **Then** respons 409 `session_not_yet_open` dengan pesan "Bisa diisi mulai {Senin, 16 Nov 2026}" dan tidak ada baris tertulis
-**And** test `R5: attendance is accepted for today in Asia/Jakarta and rejected for tomorrow` berjalan dengan `TZ=UTC` dan clock palsu, mencakup: pukul 23.30 WIB 9 Nov (`2026-11-09T16:30:00.000Z`) sesi 10 Nov ditolak dan sesi 9 Nov diterima; pukul 06.00 WIB 10 Nov (`2026-11-09T23:00:00.000Z`, UTC masih 9 Nov) sesi 10 Nov diterima (P0-006)
+**And** test `R5: attendance is accepted for today in Asia/Jakarta and rejected for tomorrow` (`attendance.tz.test.ts`, dijalankan dengan `TZ=UTC`, `Asia/Jakarta`, `Asia/Jayapura`, clock palsu) mencakup: 00.30 WIB 10 Nov (`2026-11-09T17:30:00.000Z`, UTC masih 9 Nov) → sesi 10 Nov diterima, sesi 11 Nov ditolak; 06.59 WIB 10 Nov (`2026-11-09T23:59:00.000Z`) → sesi 10 Nov diterima; 23.30 WIB 10 Nov (`2026-11-10T16:30:00.000Z`, Asia/Jayapura sudah 11 Nov) → sesi 11 Nov ditolak (P0-006)
 
 **Given** batch yang memuat `registrationId` yang tidak lagi Terdaftar di kelas itu (dibatalkan saat formulir terbuka)
 **When** PUT dikirim
@@ -857,15 +915,15 @@ Sehingga kehadiran tercatat utuh dan sesi yang belum tiba tidak bisa diisi, term
 
 **Given** peserta yang naik dari daftar tunggu setelah sesi disimpan
 **When** GET dipanggil
-**Then** ia tampil dengan `present: null` ("belum dicatat"), tanpa nilai bawaan (P1-038)
+**Then** ia tampil dengan `present: null` (Belum dicatat), tanpa nilai bawaan (P1-038)
 
-**Given** kelas Selesai
-**When** presensi dikoreksi
-**Then** penyimpanan tetap berhasil (presensi bisa dikoreksi di kelas Selesai, AD-11)
+**Given** kelas Selesai, termasuk kelas yang sesi terakhirnya hari ini
+**When** presensi sesi terakhir dicatat atau presensi lama dikoreksi
+**Then** penyimpanan tetap berhasil (presensi tidak memakai `assertClassOpen`, AD-11, PRD §4.2)
 
 **Given** `seed:demo`
 **When** dijalankan
-**Then** seed menambahkan kelas dengan sesi lampau + presensi sebagian dan kelas dengan sesi hari ini (NFR9)
+**Then** seed menambahkan kelas dengan sesi lampau + presensi sebagian (termasuk peserta Belum dicatat), kelas Dibuka dengan sesi hari ini, dan kelas yang sesi terakhirnya hari ini (Selesai, presensi masih bisa diisi) untuk UJ-4 (NFR9)
 
 ### Story 3.2: Daftar sesi dengan status presensi di halaman kelas admin
 
@@ -893,21 +951,26 @@ Sehingga saya langsung tahu presensi mana yang harus saya kerjakan (FR5, FR16).
 ### Story 3.3: Formulir presensi sesi
 
 Sebagai admin (Rina),
-Saya ingin menandai siapa yang hadir dalam satu formulir lalu menekan "Simpan" sekali,
-Sehingga presensi satu sesi selesai dalam hitungan detik di akhir kelas (FR15, FR16, UJ-4).
+Saya ingin menandai setiap peserta Hadir atau Tidak hadir dalam satu formulir lalu menekan "Simpan" sekali,
+Sehingga presensi satu sesi selesai dalam hitungan detik di akhir kelas tanpa mencampur "absen" dengan "belum dicatat" (FR15, FR16, UJ-4).
 
-**Mencakup:** FR15 (UI), FR16 (UI rute langsung), UX-DR7, UX-DR17, UX-DR20, NFR3.
+**Mencakup:** FR15 (UI, kontrol tiga keadaan — tidak pernah dipotong), FR16 (UI rute langsung), UX-DR7, UX-DR17, UX-DR20, NFR3.
 
 **Acceptance Criteria:**
 
 **Given** `/admin/kelas/{id}/sesi/{tanggal}` untuk sesi yang sudah tiba
 **When** dibuka
-**Then** tampil breadcrumb "Kelas › {judul} › Sesi {tanggal}", satu baris per peserta Terdaftar (`data-testid="attendance-row-{registrationId}"`) dengan nama, email, dan checkbox "Hadir" (20 px, area klik 32 px) bernama aksesibel "Hadir — {nama}", serta penghitung langsung "Hadir: x dari y"
-**And** peserta dengan `present: null` pada sesi yang sudah pernah disimpan menampilkan teks "Belum dicatat" di samping checkbox kosong
+**Then** tampil breadcrumb "Kelas › {judul} › Sesi {tanggal}", satu baris per peserta Terdaftar (`data-testid="attendance-row-{registrationId}"`) berisi nama, email, dan satu grup radio (`fieldset` dengan `legend` nama peserta) beropsi "Hadir", "Tidak hadir", dan "Belum dicatat", serta penghitung langsung "Hadir: x · Tidak hadir: y · Belum dicatat: z"
+**And** tanpa FR18, peserta tanpa catatan dibuka dengan "Belum dicatat" terpilih; peserta yang sudah punya catatan menampilkan nilai tersimpannya dan opsi "Belum dicatat" tidak tersedia untuknya
+**And** kontrolnya pilihan tunggal (radio), bukan checkbox, dan nilainya dibedakan dengan teks, bukan warna saja
 
 **Given** formulir
 **When** dioperasikan hanya dengan keyboard
-**Then** `Tab` berpindah antarbaris, `Spasi` mengubah centang, dan tombol "Simpan" bisa dicapai dan ditekan
+**Then** `Tab` berpindah antargrup peserta, tombol panah memilih opsi di dalam grup, dan tombol "Simpan" bisa dicapai dan ditekan
+
+**Given** admin memilih Hadir untuk A, Tidak hadir untuk B, dan membiarkan C Belum dicatat
+**When** menekan "Simpan"
+**Then** hanya A dan B yang punya catatan; C tetap Belum dicatat, dan saat formulir dibuka ulang C masih menampilkan "Belum dicatat" terpilih
 
 **Given** admin menekan "Simpan"
 **When** berhasil
@@ -915,7 +978,7 @@ Sehingga presensi satu sesi selesai dalam hitungan detik di akhir kelas (FR15, F
 
 **Given** simpan gagal (jaringan atau `roster_changed`)
 **When** respons diterima
-**Then** alert danger sebaris di atas tombol "Simpan" menampilkan "Presensi belum tersimpan. Coba lagi." (atau pesan `roster_changed` yang meminta muat ulang), dan semua centang tetap seperti sebelum simpan
+**Then** alert danger sebaris di atas tombol "Simpan" menampilkan "Presensi belum tersimpan. Coba lagi." (atau pesan `roster_changed` yang meminta muat ulang), dan semua pilihan tetap seperti sebelum simpan
 
 **Given** sesi mendatang dibuka langsung lewat URL
 **When** halaman dimuat
@@ -930,8 +993,8 @@ Sehingga presensi satu sesi selesai dalam hitungan detik di akhir kelas (FR15, F
 **Then** `useBlocker` + `beforeunload` memperingatkan
 
 **Given** e2e
-**When** admin mengisi presensi sesi hari ini, menyimpan, lalu membuka ulang untuk koreksi
-**Then** nilai tersimpan tampil dan bisa dikoreksi, dan axe tanpa pelanggaran di semua state
+**When** admin mengisi presensi sesi hari ini (sebagian peserta dibiarkan Belum dicatat), menyimpan, lalu membuka ulang untuk koreksi Hadir ↔ Tidak hadir
+**Then** nilai tersimpan tampil dan bisa dikoreksi, peserta yang dibiarkan tetap Belum dicatat, dan axe tanpa pelanggaran di semua state (formulir presensi termasuk cakupan axe minimum ✂2)
 
 ### Story 3.4: Penguncian tanggal sesi berpresensi dan konfirmasi perubahan tanggal
 
@@ -959,7 +1022,7 @@ Sehingga data kehadiran dan kelayakan sertifikat tidak berubah diam-diam (FR3 ba
 **When** dibuka
 **Then** tanggal berpresensi tampil terkunci tanpa tombol "Hapus" dengan teks "Sudah ada presensi — tidak bisa diubah"
 
-**Given** admin menyimpan perubahan tanggal dan server menjawab `confirmation_required`
+**Given** (✂2: dialog ini boleh ditunda bila potongan kedua diterapkan; penguncian tanggal berpresensi di atas tetap wajib, dan selama dialog ditunda klien selalu mengirim `confirmSessionChange: true` setelah teks peringatan sebaris tampil di formulir) admin menyimpan perubahan tanggal dan server menjawab `confirmation_required`
 **When** respons diterima
 **Then** `ConfirmDialog` menampilkan "Mengubah tanggal sesi akan mengubah total sesi dan kelayakan sertifikat semua peserta. Lanjutkan?" dengan tombol "Kembali" / "Simpan perubahan"; "Simpan perubahan" mengirim ulang dengan `confirmSessionChange: true`
 
@@ -970,8 +1033,8 @@ Sehingga data kehadiran dan kelayakan sertifikat tidak berubah diam-diam (FR3 ba
 ### Story 3.5 (SHOULD): Bawaan "semua hadir" di formulir presensi baru
 
 Sebagai admin (Rina),
-Saya ingin formulir presensi yang belum pernah disimpan dibuka dengan semua peserta tercentang hadir,
-Sehingga saya cukup menghapus centang yang absen (FR18).
+Saya ingin formulir presensi yang belum pernah disimpan dibuka dengan semua peserta dalam keadaan Hadir,
+Sehingga saya cukup mengubah peserta yang absen menjadi Tidak hadir (FR18).
 
 **Mencakup:** FR18, UX-DR17, SM-C1.
 
@@ -979,15 +1042,16 @@ Sehingga saya cukup menghapus centang yang absen (FR18).
 
 **Given** sesi yang belum pernah disimpan (`sessionSaved: false`)
 **When** formulir dibuka
-**Then** semua checkbox tercentang, penghitung menampilkan "Hadir: y dari y", dan teks di atas formulir berbunyi "Semua peserta ditandai hadir. Hapus centang peserta yang tidak hadir."
+**Then** semua peserta terpilih "Hadir", penghitung menampilkan "Hadir: y · Tidak hadir: 0 · Belum dicatat: 0", dan teks di atas formulir berbunyi "Semua peserta ditandai Hadir. Ubah menjadi Tidak hadir untuk peserta yang tidak datang."
+**And** pilihan Hadir bawaan dihitung sebagai pilihan admin: "Simpan" membuat catatan Hadir untuk setiap peserta yang tidak diubah
 
 **Given** sesi yang sudah pernah disimpan
 **When** formulir dibuka
-**Then** bawaan tidak diterapkan: nilai tersimpan tampil dan peserta tanpa catatan tetap "Belum dicatat" tanpa centang (FR15 menang atas FR18)
+**Then** bawaan tidak diterapkan: nilai tersimpan tampil dan peserta tanpa catatan (mis. hasil promosi setelah sesi disimpan) tetap "Belum dicatat" (FR15 menang atas FR18)
 
 **Given** e2e UJ-4 langkah 1–3
-**When** admin menghapus centang tiga dari 20 peserta lalu menyimpan
-**Then** penghitung menunjukkan "Hadir: 17 dari 20" sebelum simpan dan presensi tersimpan sesuai
+**When** admin mengubah tiga dari 20 peserta menjadi Tidak hadir lalu menyimpan
+**Then** penghitung menunjukkan "Hadir: 17 · Tidak hadir: 3 · Belum dicatat: 0" sebelum simpan dan 20 catatan tersimpan sesuai
 
 ### Story 3.6 (SHOULD): Beranda "Sesi hari ini"
 
@@ -1037,6 +1101,7 @@ Sehingga grid, halaman status, dan CSV selalu sepakat (FR19, FR21 API).
 **Given** `GET /api/admin/classes/:id/recap`
 **When** dipanggil
 **Then** respons memuat tanggal sesi (kolom), dan per peserta Terdaftar: `registrationId`, nama, email, sel per sesi (`present | absent | unrecorded`), jumlah hadir, total sesi (termasuk sesi mendatang), dan kelayakan dari `computeEligibility`, plus `today`; pendaftaran Dibatalkan tidak ikut walaupun punya presensi
+**And** sel `unrecorded` (Belum dicatat, tanpa baris `attendance`) tidak pernah dihitung sebagai Tidak hadir — test `R6: unrecorded sessions are not counted as absent`
 **And** data diambil dengan satu query per tabel (tanpa N+1)
 
 **Given** presensi dikoreksi atau tanggal sesi ditambah/dihapus
@@ -1103,9 +1168,10 @@ Sehingga saya bisa mengirim daftar sertifikat ke bagian sertifikat pada hari ses
 **When** ditekan
 **Then** unduhan berjalan lewat tautan unduhan biasa tanpa membuka halaman baru
 
-**Given** e2e UJ-4 (P1-045)
+**Given** e2e UJ-4 (P1-045) dengan clock palsu pada tanggal sesi terakhir kelas seed
 **When** admin mengisi presensi sesi terakhir, membuka rekap, lalu menekan "Ekspor CSV"
 **Then** berkas terunduh dengan nama yang benar dan isinya sama dengan grid
+**And** pada hari yang sama, pendaftaran baru ke kelas itu ditolak "Pendaftaran kelas ini sudah ditutup" dan pembatalan ditolak `class_finished`, sehingga daftar peserta di CSV sudah final (PRD §4.2, SM-3); hanya koreksi presensi yang masih mengubah isinya
 
 ### Story 4.4: Kehadiran dan kelayakan di halaman status peserta
 
@@ -1143,10 +1209,10 @@ Sehingga tidak ada yang berharap pada sertifikat yang mustahil (FR20).
 
 **Acceptance Criteria:**
 
-**Given** `computeEligibility` diperluas dengan `unrecordedSessions`
+**Given** `computeEligibility` diperluas dengan `unrecordedSessions` (jumlah sesi Belum dicatat untuk pendaftaran itu)
 **When** `(present + unrecordedSessions) * 5 < totalSessions * 4`
-**Then** hasilnya "Tidak mungkin layak" menggantikan "Belum layak" — test mencakup: 5 sesi + 2 "Tidak hadir" tercatat → Tidak mungkin layak; 5 sesi + 1 "Tidak hadir" → Belum layak; 3 sesi + 1 "Tidak hadir" → Tidak mungkin layak
-**And** sesi tanpa catatan mencakup sesi mendatang dan sesi lampau yang belum diisi
+**Then** hasilnya "Tidak mungkin layak" menggantikan "Belum layak" — test `R6: impossible-eligibility thresholds` mencakup: 5 sesi + 2 "Tidak hadir" tercatat → Tidak mungkin layak; 5 sesi + 1 "Tidak hadir" → Belum layak; 3 sesi + 1 "Tidak hadir" → Tidak mungkin layak
+**And** sesi Belum dicatat mencakup sesi mendatang dan sesi lampau yang belum diisi; hanya catatan Tidak hadir yang mengurangi peluang layak (5 sesi lampau semuanya Belum dicatat → Belum layak, bukan Tidak mungkin layak)
 
 **Given** grid rekap, CSV, dan halaman status
 **When** status ini berlaku
@@ -1167,8 +1233,9 @@ Sehingga MVP bisa dipakai lembaga dengan keyakinan bahwa ia cepat dan datanya bi
 **Then** DB berisi ±240 kelas, ±5.000 pendaftaran, dan presensi realistis, dibuat lewat use-case yang sama dengan aplikasi
 
 **Given** skrip ukur kinerja dijalankan di bawah `taskset -c 0` terhadap build produksi
-**When** setiap halaman/aksi utama dan ekspor CSV satu kelas diukur
+**When** setiap halaman/aksi utama (termasuk kedua tampilan tabel kelas) dan ekspor CSV satu kelas diukur
 **Then** p95 < 1 s untuk halaman/aksi dan < 2 s untuk CSV, dan hasilnya dicatat di `_bmad-output/test-artifacts/` sebagai bukti NFR7
+**And** ✂2: bila potongan kedua diterapkan, benchmark p95 diganti smoke test — tabel kelas, halaman kelas, dan ekspor CSV pada data seed satu tahun dimuat masing-masing satu kali di bawah target waktunya, hasil dicatat di tempat yang sama
 
 **Given** `npm run backup`
 **When** dijalankan saat server berjalan
@@ -1177,3 +1244,36 @@ Sehingga MVP bisa dipakai lembaga dengan keyakinan bahwa ia cepat dan datanya bi
 **Given** checklist rilis MVP
 **When** disusun
 **Then** memuat uji manual keyboard saja + pembaca layar (NVDA atau TalkBack) di setiap permukaan IA, dan hasilnya dicatat sebelum go-live
+**And** ✂2: bila potongan kedua diterapkan, uji keyboard manual wajib untuk alur pendaftaran, status + pembatalan, dan presensi; halaman admin lain diperiksa best-effort
+
+### Story 4.7: Penyajian produksi lewat HTTPS
+
+Sebagai koordinator lembaga,
+Saya ingin Kelasku berjalan di satu server lembaga yang bisa dibuka peserta dari ponsel di luar kantor lewat HTTPS,
+Sehingga peserta bisa mendaftar dari mana saja dan password admin, cookie sesi, serta nama dan email peserta tidak melintas jaringan publik tanpa enkripsi (NFR6, NFR8, UJ-2).
+
+**Mencakup:** NFR6 (produksi satu server), NFR8 (HTTPS + alih HTTP), AD-1, AD-9 (`COOKIE_SECURE`), A-10, risiko PRD §9 "server harus terjangkau lewat HTTPS". Tidak pernah dipotong.
+
+**Acceptance Criteria:**
+
+**Given** spine arsitektur
+**When** story dimulai
+**Then** keputusan terminasi TLS (A-10: reverse proxy di server yang sama, Fastify di `127.0.0.1`) sudah tercatat di spine lewat mode update `bmad-architecture` atau `bmad-correct-course`; bila spine memutuskan lain, story mengikuti spine
+
+**Given** konfigurasi produksi
+**When** Kelasku dijalankan dengan `NODE_ENV=production`
+**Then** Fastify mendengar di `127.0.0.1:{PORT}` (alamat bisa diatur lewat env baru `HOST`, ditambahkan ke `.env.example` tanpa nilai rahasia), `COOKIE_SECURE=true`, dan `trustProxy` aktif hanya untuk proxy lokal sehingga log dan pemeriksaan skema memakai protokol asli
+**And** proses menolak start di `NODE_ENV=production` bila `COOKIE_SECURE` bukan `true`, dengan pesan error yang jelas
+
+**Given** contoh konfigurasi reverse proxy di `deploy/` (mis. `Caddyfile`) dan runbook `docs/deployment.md`
+**When** diikuti di server lembaga
+**Then** permintaan `http://{domain}/…` dialihkan 301/308 ke `https://{domain}/…`, `https://{domain}/daftar/{kode}` menyajikan aplikasi, dan cookie `kelasku_session` dikirim dengan atribut `Secure`
+**And** runbook mencatat prasyarat (alamat publik, nama domain, sertifikat — risiko PRD §9) beserta prosedur backup, upgrade, dan pemulihan dari spine; tidak ada layanan cloud untuk DB, hosting, atau auth
+
+**Given** test integrasi
+**When** server dibangun dengan konfigurasi produksi
+**Then** test memastikan respons login memuat `Set-Cookie` dengan `Secure`, dan bahwa start dengan `COOKIE_SECURE=false` di produksi gagal
+
+**Given** checklist rilis MVP (Story 4.6)
+**When** go-live disiapkan
+**Then** checklist memuat verifikasi manual dari ponsel di luar jaringan kantor: buka tautan pendaftaran lewat HTTPS, mendaftar, dan memastikan `http://` dialihkan
