@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Validasi PRD: PRD Kelasku</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+
+    --grade-exc: #16a34a;
+    --grade-good: #65a30d;
+    --grade-fair: #d97706;
+    --grade-poor: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .grade {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: white;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .grade-excellent { background: var(--grade-exc); }
+  .grade-good { background: var(--grade-good); }
+  .grade-fair { background: var(--grade-fair); }
+  .grade-poor { background: var(--grade-poor); }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="report-header">
+      <div class="title">
+        <h1>PRD Kelasku — Laporan Validasi</h1>
+        <div class="subtitle">_bmad-output/planning-artifacts/prds/prd-aisdlc-kelasku-2026-11-02/prd.md</div>
+      </div>
+      <div class="grade grade-fair">Fair (Cukup)</div>
+    </header>
+
+    <div class="synthesis">
+      <p>PRD ini kuat untuk taruhannya. Tesisnya jelas dan spesifik, glosariumnya rapat, setiap aturan R1–R7 punya FR dengan konsekuensi yang bisa diuji (konkurensi, batas tengah malam WIB, R6 dengan bilangan bulat), dan siklus kelas kini diputuskan secara eksplisit dengan <code>[NOTE FOR PM]</code> di tempat yang tepat. Ada dua risiko yang tersisa. Pertama, keterjangkauan aplikasi belum diputuskan: NFR-6 mengizinkan "laptop lokal", padahal UJ-2 menuntut peserta membuka tautan dari ponsel lewat WhatsApp. Kedua, kelas masih berstatus Dibuka sepanjang hari sesi terakhir, sehingga rekap CSV yang diekspor hari itu (UJ-4, SM-3) belum final. Selain itu ada beberapa celah done-ness yang akan langsung terasa saat membuat story: status awal formulir presensi, delimiter CSV untuk Excel berlokal Indonesia, dan tidak adanya jalan pemulihan bila tanggal sesi salah.</p>
+      <p>Reviewer tambahan mempertajam gambaran ini. Reviewer adversarial menaikkan dua celah menjadi <strong>critical</strong>: formulir presensi berbasis centang tidak bisa membedakan "tidak hadir" dari "belum dicatat", sehingga hasil R6/FR-20 bergantung pada tafsiran engineer; dan kelas tetap Dibuka pada hari sesi terakhir, sehingga CSV yang sudah diserahkan ke bagian sertifikat bisa basi hari itu juga. Ia juga menemukan contoh test R5 yang mustahil secara faktual ("23.30 WIB saat UTC sudah hari berikutnya", padahal UTC selalu tertinggal dari WIB), pembatalan publik (FR-11) yang tidak mewajibkan pencocokan email sehingga endpoint bisa dipanggil hanya dengan ID, serta risiko cakupan yang tidak muat dalam satu minggu untuk tim 3 orang. Reviewer kesetiaan intent menyatakan R1–R7 dan semua non-goal terwakili dengan setia, tanpa temuan critical maupun high. Namun ia menandai tiga hal: promosi saat kuota naik dinaikkan menjadi MUST dan diberi label R3, siklus "Selesai" yang baru belum dikonfirmasi padahal status PRD sudah <code>final</code>, dan SM-3 yang dilemahkan menjadi ≥ 90%.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">Kesiapan keputusan</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Substansi, bukan teater</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Koherensi strategis</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Kejelasan kriteria selesai</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Kejujuran cakupan</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Kegunaan hilir</div>
+        <div class="dim-verdict" style="color: var(--verdict-adequate)">adequate</div>
+      </div>
+      <div class="dim-card">
+        <div class="dim-name">Kecocokan bentuk</div>
+        <div class="dim-verdict" style="color: var(--verdict-strong)">strong</div>
+      </div>
+    </div>
+
+    <!-- Dimensi 1 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Kesiapan keputusan (Decision-readiness)</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Sebagian besar pilihan dinyatakan sebagai keputusan, lengkap dengan apa yang dikorbankan. Tiga contohnya: promosi saat kuota naik beserta alasannya ("Tanpa ini, kursi baru akan diambil pendaftar yang datang belakangan", §4.2 FR-3), penolakan konfirmasi admin, jendela terima/tolak, dan undo (FR-13 "Di luar cakupan", addendum §2), serta risiko akses lewat email yang diterima secara terbuka (FR-14 "Catatan", §9). Paragraf "Siklus kelas" di §4.2 dan <code>[NOTE FOR PM]</code> sesudahnya menamai ketegangan yang paling nyata, termasuk pertanyaan yang paling mungkin diajukan Rina ("apakah pembatalan perlu batas waktu"). Pertanyaan terbuka di §10 memang masih terbuka, dan masing-masing punya pemilik serta tanda menghalangi atau tidak.</p>
+            <p>Kelemahannya ada pada satu keputusan infrastruktur yang mengubah sifat produk tetapi hanya ditandai <code>[ASSUMPTION]</code>, dan pada status dokumen yang mendahului konfirmasi yang ia minta sendiri.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Keterjangkauan aplikasi bagi peserta belum diputuskan</h3>
+              <span class="finding-location">§5 NFR-6, §2.3 UJ-2, §5 NFR-8</span>
+            </header>
+            <div class="finding-note">NFR-6 menyatakan "Kelasku berjalan di laptop lokal atau satu server kecil milik lembaga. [ASSUMPTION]". Padahal UJ-2 menggambarkan Dimas "menerima tautan di WhatsApp dan membukanya di ponsel", dan §2.1 menjanjikan peserta mendaftar "dari ponsel atau laptop". Aplikasi di laptop lokal tidak bisa dijangkau dari ponsel peserta di luar jaringan kantor. Server milik lembaga yang terbuka ke internet butuh alamat publik dan HTTPS. NFR-8 tidak menyebut HTTPS sama sekali, padahal password admin dan email peserta akan lewat jaringan publik. Pilihan ini menentukan apakah UJ-2 dan UJ-3 bisa terjadi.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> nyatakan sebagai keputusan, misalnya "server milik lembaga yang bisa diakses dari internet lewat HTTPS; laptop lokal hanya untuk pengembangan dan demo", lalu tambahkan HTTPS ke NFR-8. Bila jawabannya "hanya LAN/wifi kantor", tulis bahwa pendaftaran dari luar kantor adalah non-goal dan sesuaikan UJ-2.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title"><code>status: final</code> mendahului gerbang konfirmasi yang diminta dokumen itu sendiri</h3>
+              <span class="finding-location">frontmatter, §4.2 [NOTE FOR PM]</span>
+            </header>
+            <div class="finding-note">NOTE FOR PM meminta konfirmasi Rina "sebelum <code>bmad-create-epics-and-stories</code>" untuk lima keputusan siklus (FR-3, FR-7, FR-11, FR-15, dan paragraf siklus). Namun frontmatter sudah berstatus <code>final</code>, dan konfirmasi itu tidak punya pemilik, tenggat, maupun tempat untuk mencatat hasilnya. Dengan target satu minggu, alur story bisa berjalan di atas asumsi yang belum dikonfirmasi tanpa ada yang menyadarinya.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> ubah status menjadi <code>final-pending-confirmation</code> (atau setara), atau tambahkan baris di §10 "Konfirmasi siklus kelas dengan Rina — pemilik PM, sebelum pemecahan epik", lalu hapus tag <code>[ASSUMPTION]</code> terkait setelah dikonfirmasi.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 2 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Substansi, bukan teater (Substance over theater)</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Hampir tidak ada furnitur. Visi di §1 hanya cocok untuk produk ini ("Kuota dijaga sistem, bukan ketelitian koordinator"; "Rekap adalah hasil sampingan presensi, bukan pekerjaan terpisah") dan tidak bisa ditukar ke PRD lain. Persona benar-benar bekerja: Rina melahirkan tabel padat 1366×768 dan penanda "Penuh" dengan teks + ikon, sedangkan Dimas melahirkan lebar 360 px dan sikap "Daftar tunggu #2 … bukan pesan error". NFR punya batas yang khas produk ini: NFR-7 (±240 kelas, ±5.000 pendaftaran, p95 &lt; 1 detik, CSV &lt; 2 detik, diukur di satu inti CPU), NFR-3 (kontras 4,5:1), NFR-2 (Asia/Jakarta). Tidak ada bagian inovasi atau diferensiasi, dan itu memang tepat untuk alat internal.</p>
+            <p>Tidak ada temuan.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 3 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Koherensi strategis (Strategic coherence)</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Tesis dua gagasan di §1 langsung membentuk prioritas. Epik 1 (R1–R3, R7) dikerjakan pertama "karena R1 adalah metrik utama dan fondasi semua epik lain" (§7.1), dan FR SHOULD diberi label sebagai yang pertama dipotong. SM-1 sampai SM-3 dipetakan satu-satu ke tiga metrik di intent, dan setiap SM menyebut FR yang divalidasinya. Ruang lingkup MVP jelas berjenis pemecahan masalah.</p>
+            <p>Masalahnya, metrik untuk gagasan kedua ("rekap adalah hasil sampingan") didefinisikan sedemikian rupa sehingga hampir pasti lulus. Metrik pengimbangnya juga mengimbangi sesuatu yang tidak diukur.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">SM-2 hampir pasti lulus dan tidak cocok dengan SM-C1</h3>
+              <span class="finding-location">§8 SM-2, SM-C1</span>
+            </header>
+            <div class="finding-note">SM-2 mengukur "waktu dari admin membuka halaman kelas sampai rekap CSV terunduh, untuk kelas 5 sesi dengan presensi lengkap". Karena presensi sudah lengkap, yang diukur hanyalah beberapa klik menuju tombol ekspor, jadi target "&lt; 5 menit" terpenuhi dengan sendirinya. Baseline "±1 jam" mencakup pekerjaan menyalin dan mencocokkan presensi, dan itu tidak ada lagi dalam definisi. Di sisi lain, SM-C1 menyebut "Kecepatan presensi (SM-2, FR-18) tidak boleh dibayar dengan presensi yang salah", padahal SM-2 tidak mengukur kecepatan presensi sama sekali.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> definisikan SM-2 sebagai total waktu admin untuk satu kelas 5 sesi: lima kali pengisian presensi (FR-15) ditambah ekspor, dengan target per sesi (mis. &lt; 2 menit untuk 20 peserta) dan target ekspor. Dengan begitu SM-C1 benar-benar mengimbangi metrik yang ada.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">SM-1 dan SM-C2 lemah dalam cara pengukurannya</h3>
+              <span class="finding-location">§8</span>
+            </header>
+            <div class="finding-note">SM-1 menghitung kelas yang "pernah" melebihi kuota lewat "query bulanan atas jumlah Terdaftar", padahal query keadaan saat ini tidak bisa melihat keadaan masa lalu. Celah ini kecil karena R7 dan FR-13 membuat kelebihan kuota tidak bisa pulih sendiri, kecuali lewat pembatalan. SM-C2 tidak punya cara ukur maupun ambang.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> SM-1 cukup ditulis "jumlah kelas dengan Terdaftar &gt; kuota pada query bulanan; ditambah test paralel hijau di setiap build". Untuk SM-C2 tambahkan satu kalimat: "Rina meninjau setiap kenaikan kuota saat tinjauan bulanan".</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 4 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Kejelasan kriteria selesai (Done-ness clarity)</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>FR MUST hampir semuanya bisa diuji langsung. Ada string UI yang persis ("Kuota minimal N (jumlah terdaftar saat ini)", "Bisa diisi mulai {tanggal}", "Kelas selesai — tidak naik dari daftar tunggu"), nilai batas (judul 1–120, nama 1–100, 360 px, 1366×768, 50 kelas), dan skenario konkurensi (FR-8 "20 … paralel … tepat 5 Terdaftar", FR-9 klik ganda, FR-11 pembatalan ganda atas pendaftaran yang sama, FR-13 dua pembatalan bersamaan). FR-16 dengan kasus 23.30 WIB dan 06.00 WIB, serta FR-20 dengan tiga contoh hitungan, layak dijadikan teladan. Kontradiksi siklus kelas yang muncul di versi sebelumnya sudah diselesaikan (promosi saat kuota naik, pembekuan kelas Selesai, kepemilikan presensi pada pendaftaran).</p>
+            <p>Celah yang tersisa ada di tepi waktu (hari sesi terakhir), di model data formulir presensi, dan di keterbukaan CSV di Excel. Tiga hal ini menentukan apakah UJ-4 benar-benar berjalan.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">Kelas masih Dibuka sepanjang hari sesi terakhir, jadi rekap hari itu belum final</h3>
+              <span class="finding-location">§3 "Status kelas", §4.2 "Siklus kelas", §2.3 UJ-4, §8 SM-3</span>
+            </header>
+            <div class="finding-note">Dibuka didefinisikan sebagai "tanggal sesi terakhir ≥ hari ini", dan pembekuan baru berlaku saat "tanggal sesi terakhir &lt; hari ini", yaitu keesokan harinya. Akibatnya, pada hari sesi terakhir, setelah Rina menyimpan presensi dan "mengirim berkasnya ke bagian sertifikat" (UJ-4), masih ada tiga kemungkinan. (a) Peserta yang hadir 4/4 membatalkan sore harinya (atau dibatalkan orang lain yang tahu emailnya, §9), lalu hilang dari grid dan CSV. (b) Peserta daftar tunggu dipromosikan masuk dengan "—" di semua kolom. (c) Pendaftar baru bisa langsung Terdaftar. CSV yang sudah dikirim tidak lagi cocok dengan sistem, padahal tujuan paragraf siklus adalah "daftar kelayakan sertifikat tidak berubah lagi".</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> putuskan secara eksplisit. Pilihan yang disarankan: pendaftaran, pembatalan, dan promosi ditutup mulai tanggal sesi terakhir (≥, bukan &gt;), sedangkan presensi dan koreksinya tetap terbuka. Alternatifnya, nyatakan bahwa CSV final baru boleh dikirim keesokan hari dan sesuaikan SM-3. Tambahkan konsekuensi uji di FR-7, FR-11, dan FR-13, serta kasus test di addendum §3.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Status awal formulir presensi dan arti "tidak dicentang" belum ditentukan</h3>
+              <span class="finding-location">§4.6 FR-15, FR-18, FR-20, §4.8 FR-21</span>
+            </header>
+            <div class="finding-note">FR-15 menyebut "pilihan hadir/tidak hadir", sedangkan baris pendaftaran yang naik setelah sesi disimpan tampil "belum dicatat, tanpa centang bawaan". Artinya setiap baris punya tiga keadaan, padahal model centang hanya punya dua. Bila FR-18 (SHOULD) dipotong, tidak ada yang menyebut keadaan awal formulir baru. Tidak jelas juga apakah "Simpan" menulis "Tidak hadir" untuk semua baris yang tidak dicentang. Jawabannya mengubah FR-20 ("sesi tanpa catatan presensi"), grid FR-21 ("—" vs "Tidak hadir"), dan penguncian tanggal di FR-3 ("tanggal sesi yang sudah punya presensi").</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tentukan modelnya. Contoh: setiap baris punya tiga keadaan (Hadir / Tidak hadir / belum dicatat), formulir baru dimulai dari "belum dicatat" (atau "Hadir" bila FR-18 dibangun), dan "Simpan" hanya menulis baris yang sudah dipilih. Atau tentukan bahwa "Simpan" mewajibkan semua baris terisi. Tambahkan satu konsekuensi uji untuk masing-masing.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Delimiter CSV tidak ditentukan, padahal Excel berlokal Indonesia memakai titik koma</h3>
+              <span class="finding-location">§4.8 FR-22, §8 SM-2</span>
+            </header>
+            <div class="finding-note">FR-22 menjanjikan berkas "terbuka benar di Excel". Pada Windows dengan pengaturan regional Indonesia (desimal koma), Excel membuka CSV berpemisah koma sebagai satu kolom. Trik <code>sep=,</code> diketahui bentrok dengan BOM di beberapa versi Excel. Ini persis jalur UJ-4, yaitu berkas dikirim ke bagian sertifikat.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tetapkan delimiter secara eksplisit (mis. titik koma, sesuai lokal lembaga) dan tambahkan konsekuensi uji: "dibuka dengan klik ganda di Excel lembaga, setiap kolom terpisah dan nama non-ASCII utuh". Bila lokal Excel lembaga belum diketahui, jadikan pertanyaan terbuka dengan pemilik.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Tanggal sesi yang salah tidak punya jalan pemulihan</h3>
+              <span class="finding-location">§4.2 FR-3, §3 "Presensi"</span>
+            </header>
+            <div class="finding-note">"Tanggal sesi yang sudah punya presensi tidak bisa dihapus atau diubah", "Kelas tidak bisa dihapus di MVP", dan presensi hanya bisa dikoreksi antara hadir/tidak hadir, tidak bisa dihapus. Misalkan Rina salah memasukkan tanggal (9 Nov seharusnya 10 Nov) lalu sempat menyimpan presensi pada tanggal itu. Tanggal yang salah terkunci selamanya dan ikut menentukan total sesi R6 untuk semua peserta.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan satu jalur, misalnya admin boleh menghapus semua presensi satu sesi (dengan konfirmasi) sehingga tanggalnya bisa diubah, atau admin boleh memindahkan presensi ke tanggal lain. Bila jalur ini sengaja tidak dibangun, tulis "[NON-GOAL for MVP]" beserta jalan keluar manualnya.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Bukti NFR-1 tidak berbatas dan bisa vakum</h3>
+              <span class="finding-location">§5 NFR-1, addendum §1, §3</span>
+            </header>
+            <div class="finding-note">"lulus berulang kali tanpa flake" tidak menyebut jumlah ulangan. Karena addendum mengusulkan "satu proses server", test paralel lewat HTTP terhadap driver SQLite yang sinkron bisa lulus hanya karena event loop Node sudah menyerialkan permintaan, tanpa membuktikan transaksinya benar.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> sebut jumlah ulangan (mis. 50 kali di CI). Tambahkan bahwa test R1/R4 harus menjalankan operasi lapisan data lewat beberapa koneksi atau proses supaya transaksi benar-benar berpotongan, atau serahkan syarat ini secara eksplisit ke <code>bmad-architecture</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Detail kecil grid dan CSV</h3>
+              <span class="finding-location">§4.8 FR-21, FR-22</span>
+            </header>
+            <div class="finding-note">Urutan baris grid dan CSV tidak ditentukan (nama? waktu daftar?). Netralisasi formula hanya menyebut <code>= + - @</code>, padahal panduan OWASP juga mencakup tab (0x09) dan carriage return (0x0D) di awal sel.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tetapkan urutan (mis. nama A–Z) dan lengkapi daftar karakter awalan.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">FR-14 tidak memuat semua status yang dijanjikan FR lain</h3>
+              <span class="finding-location">§4.5 FR-14, §4.3 FR-10, §4.4 FR-11</span>
+            </header>
+            <div class="finding-note">Daftar status FR-14 tidak menyertakan "Kelas selesai — tidak naik dari daftar tunggu" (FR-10), dan tidak menyebut apa yang tampil tepat setelah peserta membatalkan (pendaftaran itu tidak lagi aktif sehingga lenyap dari daftar).</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> lengkapi daftar status di FR-14 dan tambahkan konsekuensi "setelah batal, tampil konfirmasi 'Pendaftaran di {judul} dibatalkan'".</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 5 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Kejujuran cakupan (Scope honesty)</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>§6 Non-goals mengulang semua non-goal intent, lalu menambahkan katalog publik dan penjadwalan jam/ruang/instruktur. Blok "Di luar cakupan" di FR-1 dan FR-13 benar-benar bekerja. §2.2 "Bukan pengguna" menutup celah peran instruktur ("ia memakai akun admin"). Indeks asumsi di §11 cocok persis dengan tag inline. Kepadatan butir terbuka adalah 3 pertanyaan terbuka + 10 asumsi + 1 NOTE FOR PM. Itu wajar untuk build satu minggu karena hampir semua asumsi terkumpul di bawah satu gerbang konfirmasi (lihat temuan Kesiapan keputusan).</p>
+            <p>Ada satu omisi yang akan ditanyakan pada minggu pertama pemakaian dan tidak dibahas sama sekali.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">Koreksi nama atau email peserta tidak dibahas</h3>
+              <span class="finding-location">§3 "Peserta", §4.3 FR-7, §4.8 FR-22</span>
+            </header>
+            <div class="finding-note">Nama yang diketik peserta di FR-7 langsung masuk CSV yang dikirim ke bagian sertifikat (UJ-4), dan tidak ada FR yang memungkinkan admin memperbaikinya. Salah ketik email lebih buruk lagi: peserta tidak bisa menemukan pendaftarannya di halaman status, dan bila ia mendaftar ulang dengan email yang benar, ia masuk di ekor antrean (FR-9).</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pilih salah satu dan tulis. (a) FR SHOULD baru: admin bisa mengubah nama (dan email, dengan cek R2) pendaftaran aktif. Atau (b) <code>[NON-GOAL for MVP]</code> dengan jalan keluar manual: admin membatalkan pendaftaran lalu mendaftarkan ulang, dan nama diperbaiki di CSV sebelum dikirim.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Kehilangan berkas SQLite tidak ada di daftar risiko</h3>
+              <span class="finding-location">§9, §10 butir 2</span>
+            </header>
+            <div class="finding-note">Pencadangan sudah menjadi pertanyaan terbuka, tetapi dampaknya (seluruh riwayat pendaftaran dan presensi hilang, sementara spreadsheet lama sudah ditinggalkan) tidak tercatat sebagai risiko.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan satu butir di §9 yang merujuk ke pertanyaan terbuka 2.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 6 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Kegunaan hilir (Downstream usability)</h2>
+          <span class="verdict-pill verdict-adequate">adequate</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Glosarium di §3 kuat. Ia menyelesaikan ambiguitas "sesi" vs "sesi masuk", mendefinisikan status kelas beserta kondisinya dalam WIB, dan menyatakan kepemilikan presensi pada pendaftaran. ID FR, UJ, SM, dan NFR kontigu, dan setiap kelompok fitur menyebut UJ yang diwujudkannya. Addendum memisahkan usulan penegakan per aturan dan daftar nama test ber-ID aturan dengan cara yang bisa langsung diambil oleh arsitektur dan story. Setiap UJ punya protagonis bernama dengan konteks inline.</p>
+            <p>Satu UJ bertentangan dengan aturan yang ditegakkan PRD sendiri. Karena UJ akan menjadi skenario e2e Playwright, ini lebih dari sekadar soal gaya.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">UJ-3 melanggar R3 bila dibaca bersama UJ-2</h3>
+              <span class="finding-location">§2.3 UJ-2, UJ-3; §4.3 FR-10; §4.4 FR-13</span>
+            </header>
+            <div class="finding-note">Di UJ-2, Dimas berada di "Daftar tunggu #2". Di UJ-3, satu pembatalan oleh Sari membuat Dimas "Terdaftar (naik dari daftar tunggu)". Menurut FR-13, satu pembatalan hanya mempromosikan posisi antrean 1. Penulis story atau test yang menjadikan UJ-2 dan UJ-3 satu skenario akan menulis test yang bertentangan dengan R3.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> ubah UJ-2 menjadi "Daftar tunggu #1", atau tambahkan di UJ-3 bahwa peserta #1 sudah batal lebih dulu.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">UJ-4 menyebut "sesi minggu depan" padahal yang dicatat adalah sesi terakhir</h3>
+              <span class="finding-location">§2.3 UJ-4</span>
+            </header>
+            <div class="finding-note">"di akhir sesi ke-4 (sesi terakhir)" lalu "sesi minggu depan tampil di daftar sesi". Di kelas yang sama tidak ada sesi minggu depan.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pindahkan kasus tepi R5 ke kelas lain atau ke sesi yang lebih awal, mis. "di sesi ke-2, sesi ke-3 minggu depan tampil tetapi belum bisa diisi".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">Epik 1 bergantung pada kemampuan dari epik berikutnya</h3>
+              <span class="finding-location">§7.1</span>
+            </header>
+            <div class="finding-note">Epik 1 memuat FR-3, yang mewajibkan promosi saat kuota naik dengan "fungsi promosinya sama dengan R4" (addendum §1), serta FR-5 dengan "Bagian Dibatalkan". Keduanya bergantung pada mekanisme pembatalan dan promosi di epik berikutnya.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan catatan urutan di §7.1: fungsi promosi dibangun di Epik 1 (dipakai FR-3), dan bagian Dibatalkan di FR-5 baru terisi setelah FR-11/FR-12.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Dimensi 7 -->
+    <section class="dimension">
+      <details>
+        <summary>
+          <h2>Kecocokan bentuk (Shape fit)</h2>
+          <span class="verdict-pill verdict-strong">strong</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>Produk ini alat internal dengan satu aktor eksternal (peserta lewat ponsel). Empat UJ, masing-masing membawa satu kasus tepi yang menjadi konsekuensi FR, adalah kepadatan yang pas dan tidak berlebihan. Persona dibatasi pada dua peran di intent. Detail implementasi (<code>BEGIN IMMEDIATE</code>, unique index parsial, <code>COUNT</code> di dalam transaksi) dipindahkan ke addendum dan ditandai tidak mengikat bagi <code>bmad-architecture</code>. Ini sesuai dengan <code>AGENTS.md</code>, yang menyerahkan pilihan akses SQLite dan struktur repo ke skill arsitektur. SM bersifat operasional (query, uji coba berwaktu, catatan manual), dan itu cocok untuk alat internal.</p>
+            <p>Tidak ada temuan.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Reviewer: adversarial -->
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Review adversarial</h2>
+          <span class="reviewer-source">_bmad-output/planning-artifacts/prds/prd-aisdlc-kelasku-2026-11-02/review-adversarial-general.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>PRD ini rapi dan jauh di atas rata-rata, tetapi <strong>belum siap diteruskan ke <code>bmad-create-epics-and-stories</code></strong>. Ada dua lubang yang langsung merusak janji inti produk: formulir presensi tidak bisa membedakan "tidak hadir" dari "belum dicatat", dan daftar sertifikat masih bisa berubah pada hari sesi terakhir, setelah CSV diserahkan. Selain itu, satu contoh test R5 mustahil secara faktual, AC test konkurensi bisa lulus tanpa membuktikan apa pun, cara otorisasi pembatalan publik tidak ditentukan, dan cakupannya tidak muat dalam satu minggu untuk tim berisi 3 orang. Status <code>final</code> di frontmatter tidak jujur selama <code>[NOTE FOR PM]</code> di §4.2 belum dijawab.</p>
+            <p>Jumlah: Critical 2 · High 5 · Medium 15 · Low 9. Urutan perbaikan yang direkomendasikan: (1) C1, C2 karena keduanya mengubah model data; (2) H1, H2, H3 sebelum <code>bmad-architecture</code>; (3) H4, H5, M4; (4) sisanya bersama penulisan story.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">C1. Formulir presensi biner tidak bisa menyatakan "belum dicatat", sehingga hasil R6/FR-20 bergantung pada tafsiran engineer</h3>
+              <span class="finding-location">§4.6 FR-15, FR-18; §4.7 FR-20; §4.8 FR-21</span>
+            </header>
+            <div class="finding-note">Kata "centang" menyiratkan checkbox, padahal checkbox hanya punya dua keadaan. Bila admin menekan "Simpan" dan peserta hasil promosi tidak ia sentuh, ada dua implementasi yang sama-sama sah menurut teks: (a) checkbox kosong disimpan sebagai "Tidak hadir", atau (b) tidak ada catatan yang dibuat. Hasil FR-20 berbeda di antara keduanya: (a) bisa langsung memicu "Tidak mungkin layak", sedangkan (b) tetap "Belum layak". Kasus yang sama muncul bila FR-18 (SHOULD) dipotong: pada formulir baru, semua checkbox kosong lalu disimpan, sehingga entah semua peserta tercatat "Tidak hadir" atau tidak ada catatan sama sekali. Grid FR-21 membedakan "Tidak hadir" dari "—", tetapi formulir tidak punya cara untuk menghasilkan keduanya dengan pasti.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tetapkan kontrol tiga keadaan per peserta (Hadir / Tidak hadir / Belum dicatat), misalnya radio group. Tulis aturannya: "Simpan hanya membuat atau mengubah catatan untuk peserta yang bernilai Hadir atau Tidak hadir; Belum dicatat tidak membuat catatan." Tentukan juga apakah admin boleh mengembalikan catatan menjadi "Belum dicatat" (lihat M6). Tambahkan AC: "Menyimpan formulir tanpa menyentuh peserta X tidak membuat catatan untuk X."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-critical">critical</span>
+              <h3 class="finding-title">C2. Kelas masih Dibuka pada hari sesi terakhir, jadi daftar sertifikat yang sudah diekspor bisa berubah pada hari itu juga</h3>
+              <span class="finding-location">§3 Status kelas; §4.2 Siklus kelas; UJ-4; §8 SM-3; §1 Visi</span>
+            </header>
+            <div class="finding-note">Kelas baru menjadi Selesai pada pukul 00.00 WIB keesokan harinya. Sepanjang hari sesi terakhir, setelah Rina mengekspor CSV, peserta masih bisa membatalkan, promosi masih bisa terjadi, dan pendaftar baru masih bisa masuk. CSV yang sudah diserahkan ke bagian sertifikat jadi basi tanpa ada yang tahu. Peserta yang naik pada hari terakhir otomatis "Belum layak" padahal ia baru saja "Terdaftar". Ini bertabrakan langsung dengan klaim Visi ("daftar ... siap pada hari sesi terakhir") dan dengan SM-3.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pilih salah satu dan tulis secara eksplisit: (a) pendaftaran, pembatalan, dan promosi ditutup sejak hari sesi terakhir (<code>tanggal sesi terakhir ≤ hari ini</code> → Selesai untuk pendaftaran), sementara presensi hari itu tetap bisa diisi; atau (b) pendaftaran ditutup saat sesi pertama dimulai (lihat M10). Tambahkan AC: "Pada tanggal sesi terakhir (WIB), pendaftaran baru dan pembatalan ditolak." Kalau opsi ini butuh konfirmasi Rina, masukkan ke <code>[NOTE FOR PM]</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H1. Contoh test R5 "23.30 WIB saat UTC sudah hari berikutnya" mustahil secara faktual</h3>
+              <span class="finding-location">§4.6 FR-16; addendum §3</span>
+            </header>
+            <div class="finding-note">WIB adalah UTC+7, jadi UTC selalu tertinggal dari WIB. Pukul 23.30 WIB sama dengan 16.30 UTC <strong>pada hari yang sama</strong>. UTC tidak pernah "sudah hari berikutnya" dibanding WIB. Test yang ditulis persis dari AC ini tidak bisa dibuat, atau dibuat tetapi tidak menguji apa pun. Jendela yang benar-benar berbahaya untuk server UTC adalah 00.00–06.59 WIB, ketika UTC masih menunjukkan hari sebelumnya, sehingga sesi hari ini ditolak secara keliru. Kasus "zona server di depan WIB" hanya terjadi bila server atau browser memakai zona seperti WITA/WIT (Asia/Makassar, Asia/Jayapura), yang realistis di Indonesia.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> ganti kasusnya menjadi: (1) 00.30 WIB tanggal D, server UTC (UTC = D−1 17.30): sesi tanggal D <strong>diterima</strong>; (2) 23.30 WIB tanggal D, zona proses Asia/Jayapura (sudah D+1 00.30 WIT): sesi tanggal D+1 <strong>ditolak</strong>; (3) 06.59 WIB sebagai batas atas jendela. Wajibkan test menjalankan proses dengan <code>TZ</code> yang berbeda-beda.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H2. AC konkurensi (FR-8, FR-9, FR-13, NFR-1) bisa lulus tanpa membuktikan apa pun, atau gagal dengan cara yang tidak didefinisikan</h3>
+              <span class="finding-location">§4.3 FR-8, FR-9; §4.4 FR-13; §5 NFR-1; addendum §1, §3</span>
+            </header>
+            <div class="finding-note">(1) Tidak disebut di level mana paralelismenya terjadi. Dengan driver SQLite sinkron di satu proses Node, 20 panggilan fungsi "paralel" selalu berjalan serial, sehingga test lulus walaupun tanpa transaksi sama sekali. AC seperti ini tidak membedakan implementasi yang benar dari yang salah. (2) Sebaliknya, dengan driver async dan satu koneksi bersama, dua <code>BEGIN IMMEDIATE</code> yang saling tumpang-tindih menghasilkan error "cannot start a transaction within a transaction" atau <code>SQLITE_BUSY</code>. AC tidak menyebut bahwa ke-20 permintaan harus <strong>berhasil</strong>, bukan sebagian 500 atau 409. (3) "Berulang kali tanpa flake" tidak bisa diuji karena jumlah ulangannya tidak disebut.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tulis AC: "20 request HTTP serentak ke API yang sedang berjalan: semuanya mendapat respons sukses (bukan 5xx), tepat 5 Terdaftar, 15 Daftar tunggu dengan posisi 1–15 tanpa celah atau duplikat." Tambahkan test negatif (mutation check): versi tanpa transaksi harus <strong>gagal</strong> di test ini. Tetapkan angka, misalnya "lulus 50 kali berturut-turut di CI". Tambahkan perilaku <code>SQLITE_BUSY</code> (retry atau busy_timeout) sebagai kebutuhan, dengan detailnya diputuskan oleh arsitektur.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H3. Otorisasi pembatalan publik tidak didefinisikan, sehingga endpoint pembatalan bisa dipanggil hanya dengan ID</h3>
+              <span class="finding-location">§4.4 FR-11; §4.5 FR-14 Catatan; §9</span>
+            </header>
+            <div class="finding-note">Risiko yang diterima adalah "harus tahu email". Namun PRD tidak menyatakan bahwa API pembatalan <strong>mewajibkan</strong> email yang cocok. Engineer yang wajar bisa membuat <code>POST /registrations/:id/cancel</code> tanpa parameter lain. Bila ID berurutan, siapa pun bisa membatalkan seluruh peserta lembaga dengan satu loop, dan promosi yang terpicu tidak bisa dibalik. Ini jauh lebih besar daripada risiko yang diterima di §9.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan AC di FR-11: "API pembatalan peserta menerima ID pendaftaran <strong>dan</strong> email; ditolak bila email ternormalisasi tidak cocok dengan pendaftaran itu. ID pendaftaran dan kelas di URL publik tidak berurutan (tidak bisa ditebak)." Pertimbangkan pembatasan laju sederhana pada endpoint status dan pembatalan.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H4. Cakupan tidak muat dalam 1 minggu untuk 3 orang</h3>
+              <span class="finding-location">§7.1; §5 NFR-3, NFR-7, NFR-9; §9</span>
+            </header>
+            <div class="finding-note">Ada 19 FR MUST dan 9 NFR, termasuk WCAG 2.1 AA di <strong>semua</strong> halaman, benchmark p95 dengan seed satu tahun pada satu inti CPU, test konkurensi yang benar (H2), test zona waktu multi-TZ (H1), CSV yang aman untuk Excel, autentikasi, seed, dan e2e Playwright. Repo masih kosong, dan package manager, akses SQLite, serta struktur repo belum diputuskan. Satu-satunya katup pengaman adalah tiga FR SHOULD yang kecil. Itu tidak cukup. Satu minggu kerja untuk 3 orang sekitar 15 hari-orang, dikurangi setup, arsitektur, dan review PR.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> buat daftar potong kedua yang eksplisit: bagian Dibatalkan di FR-5, dialog peringatan FR-3 (ganti dengan teks statis), NFR-7 (turunkan menjadi smoke test), dan NFR-3 (batasi ke alur peserta + presensi dengan cek otomatis axe). Pertimbangkan juga mengganti ubah tanggal sesi pada FR-3 dengan "hapus + tambah" saja. Tetapkan kriteria keputusan potong pada hari ke-3.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-high">high</span>
+              <h3 class="finding-title">H5. Tabel kelas dibatasi 50 baris tanpa paginasi, padahal kelas tidak bisa dihapus dan volumenya 240 per tahun</h3>
+              <span class="finding-location">§4.2 FR-4; FR-3; §5 NFR-7</span>
+            </header>
+            <div class="finding-note">Dengan ±20 kelas per bulan, batas 50 terlampaui pada bulan ketiga. PRD tidak menyebut apa yang terjadi pada kelas ke-51: dipotong, digulir, atau dipaginasi. Tidak ada arsip, filter (COULD), atau penghapusan. Engineer A akan menampilkan semua baris, engineer B akan memotong di 50, dan kelas Selesai terlama hilang dari UI.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tetapkan perilakunya: "Bawaan: tampilkan kelas Dibuka + kelas Selesai 30 hari terakhir; tautan 'Tampilkan semua kelas Selesai'." Atau "tampilkan semua, tetap tanpa paginasi, ≤ 300 baris". Sesuaikan AC kinerja dengan pilihan itu.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M1. Jumlah promosi FR-13 tidak menyebut apakah dihitung sebelum atau sesudah pembatalan</h3>
+              <span class="finding-location">§4.4 FR-13; addendum §1 R4</span>
+            </header>
+            <div class="finding-note">Bila jumlah Terdaftar dihitung sebelum status diubah menjadi Dibatalkan, hasilnya 0 dan tidak ada yang naik. Bullet pertama FR-13 ("posisi antrean 1") dan rumus ini juga tampak mengatakan dua hal berbeda.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "dihitung setelah status pendaftaran yang batal menjadi Dibatalkan, di dalam transaksi yang sama." Tambahkan AC: "kuota 5, Terdaftar 5, antrean 3; satu batal → Terdaftar 5, antrean 2."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M2. Invarian "kursi kosong ⇒ daftar tunggu kosong" tersirat, tidak dinyatakan, dan tidak diuji</h3>
+              <span class="finding-location">§4.3 FR-8</span>
+            </header>
+            <div class="finding-note">Bila keadaan "Terdaftar &lt; kuota dan antrean tidak kosong" pernah terjadi (bug, perbaikan data manual, atau jalur yang terlewat seperti hapus tanggal), FR-8 membuat kursi itu kosong selamanya: pendaftar baru masuk antrean dan tidak ada pemicu promosi.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> nyatakan invarian I1: "Setiap saat, bila Terdaftar &lt; kuota maka daftar tunggu kosong (kecuali kelas Selesai)." Tambahkan test properti setelah setiap operasi tulis. Sebagai alternatif, ubah FR-8 menjadi "pendaftaran baru selalu masuk ekor, lalu jalankan promosi".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M3. Kelas Selesai "hanya bisa diubah judulnya" bertabrakan dengan "semua validasi FR-2 berlaku"</h3>
+              <span class="finding-location">§4.2 FR-3 vs FR-2</span>
+            </header>
+            <div class="finding-note">Kelas Selesai sudah pasti tidak punya tanggal ≥ hari ini, jadi menyimpan perubahan judul gagal validasi bila FR-2 diterapkan utuh. Hasilnya dua implementasi: judul kelas Selesai bisa diubah, atau tidak bisa.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Validasi tanggal FR-2 hanya berlaku bila daftar tanggal berubah. Pada kelas Selesai, hanya validasi judul yang berlaku."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M4. Admin tidak bisa menutup atau menyembunyikan kelas yang salah dibuat atau batal diselenggarakan</h3>
+              <span class="finding-location">§4.2 FR-3</span>
+            </header>
+            <div class="finding-note">Kelas yang dibuat ganda, berisi typo tanggal, atau dibatalkan lembaga tetap Dibuka dan tautannya tetap menerima pendaftaran sampai tanggal terakhir lewat. Satu-satunya cara "menutup" kelas adalah memajukan tanggal, dan itu diblokir oleh FR-2. Rina tidak punya jalan keluar.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan aksi "Tutup pendaftaran" (status Ditutup, ditolak seperti Selesai), atau izinkan penghapusan kelas yang belum punya pendaftaran sama sekali. Ini murah dan menutup kasus yang paling sering.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M5. Tanggal sesi terkunci oleh presensi yang tidak terlihat milik pendaftaran yang dibatalkan</h3>
+              <span class="finding-location">§3 Presensi; §4.2 FR-3; §4.6 FR-15</span>
+            </header>
+            <div class="finding-note">Sesi yang presensinya hanya milik peserta yang kemudian batal tampak kosong di grid, tetapi tanggalnya tidak bisa diubah, dan UI "menjelaskan alasannya" dengan merujuk data yang tidak bisa dilihat admin. Pertanyaan "presensi" mana yang dihitung juga ambigu: semua catatan, hanya yang hadir, atau hanya milik pendaftaran aktif.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Tanggal dikunci bila ada catatan presensi milik pendaftaran yang <strong>saat ini Terdaftar</strong>." Atau tampilkan jumlah catatan tersembunyi di pesan penolakan.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M6. Tanggal sesi yang salah tetapi sudah berisi presensi tidak bisa diperbaiki selamanya</h3>
+              <span class="finding-location">§4.2 FR-3; §4.6 FR-15</span>
+            </header>
+            <div class="finding-note">Tidak ada aksi untuk menghapus catatan presensi atau mengembalikannya ke "belum dicatat". Bila Rina mengisi presensi pada tanggal yang keliru (misalnya 9 Nov yang seharusnya 10 Nov), tanggal itu terkunci permanen dan total sesi R6 salah untuk semua peserta.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> izinkan "Kosongkan presensi sesi ini" (dengan konfirmasi dua langkah), sehingga tanggalnya terbuka lagi. Atau izinkan memindahkan tanggal beserta presensinya, selama tanggal tujuan ≤ hari ini (R5).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M7. Simpan presensi yang bersamaan dengan pembatalan atau penyimpanan admin lain tidak didefinisikan</h3>
+              <span class="finding-location">§4.6 FR-15; §5 NFR-1</span>
+            </header>
+            <div class="finding-note">Ada tiga kasus. (1) Admin membuka formulir, peserta X batal, lalu admin menyimpan: apakah catatan untuk X ditolak, diabaikan diam-diam, atau disimpan untuk pendaftaran Dibatalkan? (2) Dua admin menyimpan sesi yang sama: last-write-wins per peserta atau per formulir? (3) Tanggal sesi dihapus saat formulirnya sedang terbuka.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Simpan presensi hanya menulis untuk pendaftaran yang Terdaftar saat disimpan; entri lain diabaikan dan disebut di pesan hasil. Penyimpanan bersamaan: last-write-wins per peserta. Simpan ke sesi yang sudah dihapus ditolak dengan pesan."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M8. Halaman status menyembunyikan pendaftaran Dibatalkan, padahal pembatalan oleh orang lain adalah risiko yang diakui</h3>
+              <span class="finding-location">§4.5 FR-14; §9</span>
+            </header>
+            <div class="finding-note">Peserta yang dibatalkan admin atau orang iseng hanya melihat "tidak ada pendaftaran", tanpa jejak. Akibatnya ia kembali bertanya lewat WhatsApp, dan itu melawan SM-4.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tampilkan juga pendaftaran Dibatalkan dalam 30 hari terakhir, dengan waktu batal dan pembatal (peserta/admin).</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M9. Pernyataan "5 admin" bertabrakan dengan seed yang hanya berisi satu akun admin dan tidak adanya UI untuk membuat akun</h3>
+              <span class="finding-location">§2.1; §4.1 FR-1; addendum §4</span>
+            </header>
+            <div class="finding-note">Kelima admin akan berbagi satu kredensial, dan "pembatal = admin" tidak menyebut admin yang mana. PRD tidak menyebut apakah akun berbagi memang disengaja.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> nyatakan salah satu: "akun bersama satu untuk semua admin (diterima)" atau "seed membaca daftar N admin dari <code>.env</code>/berkas lokal". Bila akun per orang, catat ID admin pada pembatalan.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M10. Pendaftaran tetap terbuka setelah sesi berjalan, sehingga pendaftar terlambat dijamin tidak layak</h3>
+              <span class="finding-location">§4.2 Siklus kelas; §4.3 FR-7; [NOTE FOR PM]</span>
+            </header>
+            <div class="finding-note">Di kelas 4 sesi, siapa pun yang Terdaftar setelah sesi 1 tidak mungkin layak. Sistem menerima pendaftaran yang pasti berujung "Belum layak" tanpa memberi tahu pendaftar. NOTE FOR PM hanya menanyakan batas waktu <strong>pembatalan</strong>, bukan batas waktu <strong>pendaftaran</strong>.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan pertanyaan ini ke NOTE FOR PM. Minimal, tampilkan peringatan di halaman pendaftaran bila sudah ada sesi yang lewat, misalnya "Sesi yang sudah lewat tetap dihitung untuk sertifikat".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M11. Excel dengan locale Indonesia memakai <code>;</code> sebagai pemisah, sehingga AC "terbuka benar di Excel" tidak bisa diuji dan kemungkinan gagal</h3>
+              <span class="finding-location">§4.8 FR-22</span>
+            </header>
+            <div class="finding-note">Excel Windows dengan regional setting id-ID (desimal koma) membaca CSV berpemisah koma sebagai satu kolom. Versi Excel dan locale tidak disebut, jadi AC ini tidak bisa diverifikasi. Format tanggal NFR-5 ("Senin, 9 Nov 2026") juga mengandung koma bila dipakai sebagai header.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tentukan Excel dan locale target. Pilih pemisah (<code>;</code> untuk id-ID, atau baris <code>sep=,</code> dengan konsekuensi BOM-nya diuji), lalu tetapkan format header tanggal di CSV (ISO <code>YYYY-MM-DD</code> lebih aman). Tambahkan uji manual dengan satu berkas contoh di laptop Rina.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M12. Test R5 dan seed bergantung pada tanggal nyata tanpa kebutuhan jam yang bisa disuntik</h3>
+              <span class="finding-location">§5 NFR-9; addendum §4</span>
+            </header>
+            <div class="finding-note">Seed yang dibuat kemarin membuat test e2e "sesi hari ini" gagal hari ini. Kasus 00.30/23.30 WIB juga tidak bisa diuji tanpa mengendalikan jam.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan NFR: "Waktu sekarang berasal dari satu sumber yang bisa diganti di test (jam palsu); e2e menjalankan seed ulang dengan tanggal relatif sebelum setiap run."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M13. NFR-3 (WCAG 2.1 AA) dan NFR-1 ("tanpa flake") tidak punya metode verifikasi</h3>
+              <span class="finding-location">§5 NFR-1, NFR-3</span>
+            </header>
+            <div class="finding-note">"Memenuhi WCAG 2.1 AA" untuk semua halaman butuh audit manual yang tidak dianggarkan. Tidak disebut kapan NFR ini dianggap lulus.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Lulus bila axe-core (via Playwright) melaporkan 0 pelanggaran serious/critical di halaman X, Y, Z, ditambah satu pemeriksaan keyboard manual pada alur daftar, batal, dan presensi."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M14. SM-1 "pernah punya Terdaftar &gt; kuota" tidak bisa diukur dengan query bulanan atas keadaan saat ini</h3>
+              <span class="finding-location">§8 SM-1; §7.3</span>
+            </header>
+            <div class="finding-note">Kelebihan kuota yang sementara (misalnya akibat bug, lalu satu orang batal) tidak terlihat pada query keadaan akhir, dan tanpa riwayat kata "pernah" tidak terukur.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> ganti dengan "jumlah kelas dengan Terdaftar &gt; kuota saat query dijalankan", atau tambahkan constraint/trigger yang membuat kelebihan kuota mustahil secara fisik, lalu ukur jumlah penolakannya.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M15. Grid rekap tanpa gulir horizontal (NFR-4) tidak dibatasi jumlah sesinya</h3>
+              <span class="finding-location">§5 NFR-4; §4.8 FR-21; FR-2</span>
+            </header>
+            <div class="finding-note">Nama, email, N kolom tanggal, x/y, dan kelayakan pada lebar 1366 px hanya muat untuk sedikit sesi. FR-2 tidak membatasi jumlah tanggal. Tidak jelas pula apakah grid rekap termasuk "tabel utama".</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> batasi jumlah sesi per kelas (misalnya 1–10) di FR-2, atau nyatakan bahwa grid rekap boleh bergulir horizontal dengan kolom nama tetap terlihat.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L1. Frontmatter <code>status: final</code> bertentangan dengan NOTE FOR PM yang belum dijawab</h3>
+              <span class="finding-location">frontmatter; §4.2 [NOTE FOR PM]; §10</span>
+            </header>
+            <div class="finding-note">Status final tidak jujur selama keputusan siklus kelas belum dikonfirmasi.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> ubah ke <code>status: draft-for-confirmation</code> sampai keputusan siklus kelas dikonfirmasi Rina.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L2. Zona tampilan timestamp tidak ditetapkan</h3>
+              <span class="finding-location">§5 NFR-2; FR-5</span>
+            </header>
+            <div class="finding-note">NFR-2 hanya mengatur "hari ini" dan tanggal sesi, bukan waktu daftar, batal, dan promosi.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Semua waktu ditampilkan dalam WIB dengan format Indonesia; disimpan dalam UTC/ISO."</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L3. Email sama dengan nama berbeda tidak ditentukan perilakunya</h3>
+              <span class="finding-location">§4.3 FR-9; §4.5 FR-14</span>
+            </header>
+            <div class="finding-note">Bila pendaftaran ulang memakai nama lain, apakah nama diperbarui atau diabaikan? Typo pada email tidak bisa dikoreksi tanpa batal-daftar ulang, yang membuat peserta kehilangan kursi.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> "Nama pada pendaftaran yang sudah aktif tidak diubah." Pertimbangkan koreksi nama/email oleh admin sebagai COULD.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L4. "Belum layak" pada kelas Selesai menyesatkan bagian sertifikat</h3>
+              <span class="finding-location">§4.7 FR-19; §4.8 FR-22</span>
+            </header>
+            <div class="finding-note">Pada kelas yang sudah final, "Belum" menyiratkan masih bisa berubah.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pada kelas Selesai, tampilkan "Tidak layak", karena statusnya sudah final.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L5. Mitigasi formula injection CSV tidak lengkap dan efek sampingnya tidak disebut</h3>
+              <span class="finding-location">§4.8 FR-22</span>
+            </header>
+            <div class="finding-note">Awalan tab (<code>\t</code>) dan CR (<code>\r</code>) tidak tercakup. Tanda <code>'</code> tampil literal di sel saat CSV dibuka, sehingga nama seperti "-Andi" berubah. Email tidak bisa diawali <code>=</code> setelah validasi, tetapi nama bisa.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan <code>\t</code> dan <code>\r</code> ke daftar, lalu nyatakan bahwa <code>'</code> yang tampil adalah perilaku yang diterima.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L6. Batas nilai tidak ditetapkan</h3>
+              <span class="finding-location">FR-2, FR-7</span>
+            </header>
+            <div class="finding-note">Kuota maksimum, rentang tahun tanggal sesi, apakah nama di-trim, dan definisi "berformat email" tidak disebut.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tetapkan kuota 1–1000, tanggal dalam ±1 tahun dari hari ini, nama di-trim seperti judul, dan satu aturan format email.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L7. Implementasi bocor ke PRD, bertentangan dengan janji §0</h3>
+              <span class="finding-location">§0; FR-1; FR-8; NFR-1</span>
+            </header>
+            <div class="finding-note">Bagian yang diwajibkan <code>AGENTS.md</code> bisa diterima. HTTP 401 dan "1-based" tidak relevan bagi pembaca produk.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pindahkan hal itu ke addendum, atau ubah kalimat §0 menjadi "sebagian besar detail teknis".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L8. Teks FR-14 dan FR-10 untuk antrean di kelas Selesai tidak sinkron</h3>
+              <span class="finding-location">§4.5 FR-14 vs §4.3 FR-10</span>
+            </header>
+            <div class="finding-note">FR-10 menjanjikan "Kelas selesai — tidak naik dari daftar tunggu", tetapi daftar status FR-14 tidak memuatnya.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan status keempat ini ke daftar di FR-14.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L9. Promosi saat kuota naik dilabeli R3, padahal ini perluasan R4 dan mengubah brief</h3>
+              <span class="finding-location">§4.2 FR-3; addendum §3</span>
+            </header>
+            <div class="finding-note">Pelabelan ini membingungkan traceability. Perilakunya benar, tetapi tidak berasal dari R3 yang dibekukan.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> label "R3/R1 (turunan)". Pastikan perubahan dari brief tercatat sebagai keputusan, bukan hanya <code>[ASSUMPTION]</code>.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- Reviewer: intent fidelity -->
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Review kesetiaan terhadap intent</h2>
+          <span class="reviewer-source">_bmad-output/planning-artifacts/prds/prd-aisdlc-kelasku-2026-11-02/review-intent-fidelity.md</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>PRD <strong>setia</strong> terhadap intent. Ketujuh aturan R1–R7 dan ketujuh non-goal ada di PRD dengan semantik yang sama. Konvensi <code>AGENTS.md</code> juga ikut terbawa: transaksi di lapisan data untuk R1/R2/R4 (NFR-1), "hari ini" di Asia/Jakarta (glosarium, NFR-2, FR-16), rumus bilangan bulat R6 (FR-19), UI berbahasa Indonesia (NFR-5), dan SQLite lokal tanpa cloud (NFR-6). Tidak ada temuan critical atau high. Temuan yang ada berupa penambahan perilaku yang tidak diminta intent, yaitu promosi saat kuota naik dan siklus kelas "Selesai", serta satu metrik keberhasilan yang targetnya diturunkan. Semuanya perlu dikonfirmasi PM sebelum <code>bmad-create-epics-and-stories</code>.</p>
+            <p>Status cakupan: R2, R5, R6, R7 Setia; R1, R3, R4 Setia+ (ditambah perilaku yang perlu dikonfirmasi). Ketujuh non-goal Setia. Semua batasan teknologi dan konvensi <code>AGENTS.md</code> Setia. Jumlah: Critical 0 · High 0 · Medium 3 · Low 7.</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M1. Promosi saat kuota naik dinaikkan dari COULD menjadi MUST dan dicatat sebagai R3</h3>
+              <span class="finding-location">§4.2 FR-3; §11; addendum §1 (baris R7), addendum §3</span>
+            </header>
+            <div class="finding-note">R4 di intent hanya menyebut promosi karena pembatalan. Brief sengaja menaruh promosi saat kuota naik di COULD karena "tidak tertulis di intent". PRD menjadikannya MUST dan memberinya label R3. Perilaku ini memang masuk akal, karena tanpanya syarat "daftar tunggu kosong" di FR-8 membuat kursi baru tidak pernah terisi. Namun ini tetap perilaku baru, bukan bunyi R3. Memakai ID aturan yang dibekukan untuk perilaku baru mengaburkan ketertelusuran: test "R3: …" tampak seperti menguji intent padahal menguji keputusan PRD.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> konfirmasi ke PM/Rina. Beri ID turunan, misalnya "FR-3 (diturunkan dari R1+R3)", atau catat eksplisit di §11 bahwa ini perluasan. Ganti nama test agar tidak mengklaim bunyi R3, misalnya <code>FR-3/R3-derived: …</code>.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M2. Siklus kelas "Selesai" menambah aturan bisnis baru yang membatasi pendaftaran, pembatalan, dan promosi</h3>
+              <span class="finding-location">§3 "Status kelas"; §4.2 "Siklus kelas" dan [NOTE FOR PM]; FR-2, FR-3, FR-7, FR-10, FR-11</span>
+            </header>
+            <div class="finding-note">Intent tidak punya konsep status kelas. Aturan ini tidak melanggar R1–R7, karena pembatalan yang ditolak tidak memicu R4. Tetapi aturan ini mempersempit What #2 dan #3 serta menambah kasus status ("Kelas selesai — tidak naik dari daftar tunggu"). PRD berstatus <code>final</code> padahal NOTE FOR PM masih terbuka.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> selesaikan konfirmasi sebelum <code>bmad-create-epics-and-stories</code>. Selama belum dikonfirmasi, ubah status PRD atau pindahkan keputusan ini ke §10 Pertanyaan terbuka.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-medium">medium</span>
+              <h3 class="finding-title">M3. Target metrik "daftar sertifikat siap di hari yang sama" diturunkan menjadi ≥ 90%</h3>
+              <span class="finding-location">§8 SM-3</span>
+            </header>
+            <div class="finding-note">Metrik di intent berbunyi "Daftar peserta yang berhak sertifikat siap <strong>pada hari yang sama</strong> dengan sesi terakhir", tanpa persentase. Brief juga menulis "hari yang sama" tanpa persentase. PRD menambahkan ambang 90% dan membatasinya ke bulan pertama. Ini melemahkan metrik keberhasilan. Selain itu, ukurannya (CSV diekspor pada tanggal sesi terakhir) adalah proksi, bukan bukti bahwa daftar sudah siap.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> jadikan target 100% kelas, atau tandai 90% sebagai <code>[ASSUMPTION]</code> yang perlu persetujuan PM. Bedakan "sistem siap" (FR-19 langsung terhitung setelah presensi disimpan) dari "admin menyerahkan".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L1. FR-8 menambah syarat "daftar tunggu kosong" untuk status Terdaftar</h3>
+              <span class="finding-location">§4.3 FR-8</span>
+            </header>
+            <div class="finding-note">Syarat ini memperketat R1/R3 dan tidak melanggarnya. Namun ia membuat invarian baru ("daftar tunggu tidak kosong ⇒ kelas penuh") yang hanya terjaga bila promosi saat kuota naik dibangun. Bila itu dipotong, kursi baru akan kosong selamanya.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tuliskan invarian ini secara eksplisit dan kaitkan FR-8 dengan FR-3.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L2. Pembatalan oleh admin (FR-12) memperluas What #3</h3>
+              <span class="finding-location">§4.4 FR-12</span>
+            </header>
+            <div class="finding-note">Intent What #3 dan R4 menyebut "pembatalan oleh peserta terdaftar". Perluasan ini sudah ditandai asumsi dan konsisten dengan R4.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> cukup dikonfirmasi.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L3. NFR-1 tidak mencantumkan R7 dan promosi saat kuota naik</h3>
+              <span class="finding-location">§5 NFR-1</span>
+            </header>
+            <div class="finding-note">FR-3 dan addendum §1 sudah menuntut cek R7 dan promosi dalam transaksi yang sama, tetapi NFR lintas fitur dan bukti test paralelnya tidak menyebut FR-3.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan R7/FR-3 ke NFR-1, serta test paralel "ubah kuota bersamaan dengan pendaftaran".</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L4. §6 menambah non-goal yang tidak ada di intent</h3>
+              <span class="finding-location">§6</span>
+            </header>
+            <div class="finding-note">"Katalog kelas publik atau pencarian kelas." dan "Penjadwalan jam sesi, ruangan, atau instruktur." tidak bertentangan dengan intent dan justru mempersempit cakupan.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tandai sebagai keputusan PRD, bukan bagian dari daftar intent, agar daftar non-goal yang dibekukan tetap bisa dibedakan.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L5. Batasan baru saat mengubah kelas mempersempit What #1</h3>
+              <span class="finding-location">§4.2 FR-2, FR-3</span>
+            </header>
+            <div class="finding-note">Intent hanya menyebut "membuat dan mengubah kelas: judul, daftar tanggal sesi, kuota". Batasan (minimal satu tanggal ≥ hari ini, tanggal berpresensi terkunci, kelas Selesai hanya judul, kelas tidak bisa dihapus) wajar dan sudah ditandai <code>[ASSUMPTION]</code>.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> cukup dikonfirmasi bersama M2.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L6. Daftar status di FR-14 tidak memuat status kelas Selesai dari FR-10</h3>
+              <span class="finding-location">§4.5 FR-14 vs §4.3 FR-10</span>
+            </header>
+            <div class="finding-note">Inkonsistensi kecil di dalam PRD.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> tambahkan status keempat ke FR-14.</div>
+          </article>
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-low">low</span>
+              <h3 class="finding-title">L7. Bawaan "semua hadir" (FR-18) berisiko membuat R6 bernilai "Layak" palsu</h3>
+              <span class="finding-location">§4.6 FR-18</span>
+            </header>
+            <div class="finding-note">Rumus R6 tetap benar, tetapi data masukannya bisa salah. Risiko ini sudah diakui lewat SM-C1, dan FR-18 berstatus SHOULD.</div>
+            <div class="finding-fix"><strong>Perbaikan:</strong> pertimbangkan agar FR-18 dipotong lebih dulu bila SM-C1 tidak bisa diukur.</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Catatan mekanis</h3>
+      <ul>
+        <li><strong>Kontinuitas ID:</strong> FR-1…FR-22, UJ-1…UJ-4, SM-1…SM-4, SM-C1/SM-C2, dan NFR-1…NFR-9 kontigu dan unik. Klaim §0 "FR-1 sampai FR-22" akurat. Semua rujukan silang terselesaikan.</li>
+        <li><strong>Roundtrip indeks asumsi:</strong> 10 tag inline ↔ 10 entri §11, semuanya cocok (FR-2, FR-3 ×4, FR-7, FR-11, FR-12, FR-15, NFR-6).</li>
+        <li><strong>Label aturan untuk promosi saat kuota naik:</strong> FR-3 dan addendum §3 memberinya label R3, sedangkan tabel addendum §1 menaruhnya di baris R7. Pilih satu label agar nama test dan ketertelusuran konsisten.</li>
+        <li><strong>Drift glosarium:</strong> satu konsep punya tiga nama ("belum dicatat" FR-15, "—" FR-21, "sesi tanpa catatan presensi" FR-20); "Daftar tunggu" dipakai untuk status dan antrean; "halaman kelas" vs "halaman kelas admin", serta "tabel kelas", "halaman pendaftaran", dan "pembatal" belum ada di glosarium.</li>
+        <li><strong>Kesetiaan pada intent:</strong> R1–R7 terwakili dengan makna yang sama. R4 diperluas ke pembatalan oleh admin (FR-12) dan ke kenaikan kuota (FR-3), keduanya ditandai. R6 bilangan bulat cocok dengan contoh intent (5 → 4, 3 → 3). Semua non-goal intent dipertahankan di §6.</li>
+        <li><strong>Sumber:</strong> riset kompetitif tercatat "prompt saja, belum ada hasil", jujur dan konsisten dengan pertanyaan terbuka 1.</li>
+        <li><strong>Bagian wajib:</strong> semua ada untuk taruhan ini.</li>
+        <li><strong>Dibanding tinjauan sebelumnya:</strong> temuan critical (kenaikan kuota memotong antrean) dan temuan high (pembekuan kelas Selesai, kepemilikan presensi, perubahan tanggal sesi) sudah diselesaikan. Sisa celah siklus kelas kini hanya pada batas hari sesi terakhir.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubrik: .claude/skills/bmad-prd/assets/prd-validation-checklist.md</span>
+        <span>Dibuat: 2026-11-02T12:41:23+07:00</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
