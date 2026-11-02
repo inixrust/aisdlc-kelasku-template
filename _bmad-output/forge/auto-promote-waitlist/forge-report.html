@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge Report — Promosi daftar tunggu otomatis (Kelasku)</title>
+<style>
+  :root{--ink:#1f2328;--muted:#57606a;--line:#d0d7de;--bg:#fbfaf7;--seal:#8b1e1e;--ok:#1a6b3a}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  main{max-width:880px;margin:0 auto;padding:32px 20px 48px}
+  header{display:flex;gap:24px;align-items:center;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:20px}
+  header div{flex:1;min-width:260px}
+  h1{font-size:24px;margin:0 0 6px}
+  h2{font-size:17px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  p.meta{color:var(--muted);margin:0}
+  ul{padding-left:20px;margin:6px 0}
+  li{margin:4px 0}
+  code{background:#eef1f4;padding:1px 5px;border-radius:4px;font-size:13px}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#f0f2f4}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 7px;border-radius:10px;border:1px solid}
+  .lock{color:var(--ok);border-color:var(--ok)}
+  .kill{color:var(--seal);border-color:var(--seal)}
+  .crack{color:#7a4b00;border-color:#7a4b00}
+  footer{margin-top:32px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <svg width="150" height="150" viewBox="0 0 200 200" role="img" aria-label="Segel lilin: HARDENED">
+    <defs>
+      <radialGradient id="wax" cx="40%" cy="35%" r="70%">
+        <stop offset="0" stop-color="#b83232"/><stop offset="1" stop-color="#6e1414"/>
+      </radialGradient>
+      <path id="arc" d="M100,100 m-62,0 a62,62 0 1,1 124,0 a62,62 0 1,1 -124,0"/>
+    </defs>
+    <path fill="url(#wax)" d="M100 8 C122 10 130 22 150 26 C170 34 168 52 182 66 C194 84 186 100 192 118 C190 140 172 146 164 166 C148 184 130 178 112 190 C92 196 80 184 60 182 C40 176 36 158 22 146 C8 128 16 112 10 94 C12 72 28 66 34 46 C48 26 66 30 80 16 C88 10 94 8 100 8Z"/>
+    <circle cx="100" cy="100" r="74" fill="none" stroke="#f4d9d9" stroke-opacity=".55" stroke-width="2"/>
+    <circle cx="100" cy="100" r="50" fill="none" stroke="#f4d9d9" stroke-opacity=".55" stroke-width="1.5"/>
+    <text font-size="13" font-weight="700" letter-spacing="3" fill="#f7e6e6"><textPath href="#arc" startOffset="2%">KELASKU · FORGE · R4 · KELASKU · FORGE · R4 ·</textPath></text>
+    <text x="100" y="97" text-anchor="middle" font-size="19" font-weight="800" fill="#fff" letter-spacing="1">HARDENED</text>
+    <text x="100" y="117" text-anchor="middle" font-size="11" fill="#f7e6e6">2026-11-02</text>
+  </svg>
+  <div>
+    <h1>Promosi daftar tunggu otomatis, tanpa konfirmasi admin</h1>
+    <p class="meta">Tujuan sesi: menguji apakah ide bertahan · Proyek: Kelasku · Sesi non-interaktif (dry run)</p>
+    <p><strong>Hasil: BERTAHAN.</strong> Ide ini adalah R4 di <code>docs/intent-kelasku.md</code>, yang sudah dibekukan. Varian dengan konfirmasi justru melanggar intent. Ide ini bertahan dengan beberapa pengaman, dan tiga titik lemah masih terbuka.</p>
+  </div>
+</header>
+
+<h2>Keputusan yang dikunci</h2>
+<ul>
+  <li><span class="tag lock">LOCK</span> Promosi berjalan di lapisan data, dalam transaksi yang sama dengan pembatalan (<code>BEGIN IMMEDIATE</code>). Sistem menghitung <code>kursi kosong = kuota − terdaftar</code>, lalu menaikkan <code>min(kursi kosong, antrean)</code> peserta teratas secara FIFO (<code>created_at</code>, lalu <code>id</code>). Dua pembatalan bersamaan tetap aman dan kuota tidak pernah terlampaui.</li>
+  <li><span class="tag lock">LOCK</span> Tidak ada konfirmasi dari admin maupun peserta, dan pembatalan bersifat final. Hasil promosi hanya tampil di layar.</li>
+  <li><span class="tag lock">LOCK</span> Bila admin membatalkan atas nama peserta, promosinya sama.</li>
+  <li>Bila peserta di daftar tunggu membatalkan, ia hanya keluar dari antrean. Tidak ada promosi.</li>
+  <li>Peserta yang batal lalu ingin kembali harus mendaftar ulang dan masuk ke ekor antrean (R2, R3).</li>
+  <li>Status peserta tertulis "Terdaftar (naik dari daftar tunggu)". Halaman kelas admin menandai siapa yang dipromosikan beserta waktunya. Setiap pembatalan mencatat <code>cancelled_by</code> dan <code>cancelled_at</code>.</li>
+</ul>
+
+<h2>Yang ditolak dan alasannya</h2>
+<table>
+  <tr><th>Opsi</th><th>Alasan ditolak</th></tr>
+  <tr><td><span class="tag kill">KILL</span> Konfirmasi admin sebelum promosi</td><td>Melanggar kata "otomatis" di R4. Kursi dibiarkan kosong selama Rina sibuk mengajar, sehingga bottleneck lama kembali.</td></tr>
+  <tr><td><span class="tag kill">KILL</span> Jendela terima/tolak bagi peserta yang dipromosikan</td><td>Butuh notifikasi (non-goal MVP) dan penjadwal/timer.</td></tr>
+  <tr><td><span class="tag kill">KILL</span> Undo pembatalan</td><td>Setelah promosi terjadi, mengembalikan peserta yang batal akan melanggar R1.</td></tr>
+</table>
+
+<h2>Titik lemah yang masih ada</h2>
+<ul>
+  <li><span class="tag crack">CRACK</span> Tidak ada notifikasi, jadi peserta yang naik baru tahu bila membuka halaman status. Kursi bisa terbuang. Untuk sementara admin mengabari secara manual dengan bantuan penanda promosi.</li>
+  <li><span class="tag crack">CRACK</span> Siapa pun yang tahu email seorang peserta bisa membatalkan pendaftarannya, dan promosi yang terpicu tidak bisa dibalik. Untuk MVP risiko ini diterima, karena keamanan penuh adalah non-goal. <code>cancelled_by</code> menjadi jejak bila ada sengketa.</li>
+  <li><span class="tag crack">CRACK</span> Peserta yang naik di tengah kelas bisa mustahil layak sertifikat. Contoh: kelas 5 sesi, ia sudah absen 2, jadi paling banyak hadir 3 dari minimal 4. MVP tidak memberi batas waktu (asumsi); kondisi ini ditandai lewat status "Tidak mungkin layak".</li>
+</ul>
+
+<h2>Asumsi yang perlu dikonfirmasi PM</h2>
+<ul>
+  <li>Tidak ada batas waktu untuk pembatalan/promosi, karena intent tidak menyebutnya.</li>
+  <li>Promosi saat kuota dinaikkan (A1) bisa memakai fungsi "isi kursi kosong" yang sama. Statusnya tetap COULD dan tidak dikunci di sesi ini.</li>
+</ul>
+
+<h2>Para penguji</h2>
+<table>
+  <tr><th>Suara</th><th>Peran</th><th>Tekanan yang diberikan</th></tr>
+  <tr><td>📋 John</td><td>Product Manager (BMad)</td><td>"Kenapa admin perlu mengonfirmasi? Kapan pun Rina menyetujui, pekerjaannya bertambah satu." Ia mematahkan varian konfirmasi admin.</td></tr>
+  <tr><td>🏗️ Winston</td><td>System Architect (BMad)</td><td>Mengusulkan "isi kursi kosong" menggantikan "naikkan satu orang", supaya dua pembatalan bersamaan tidak saling menimpa.</td></tr>
+  <tr><td>🧪 Murat</td><td>Test Architect (BMad)</td><td>Menuntut test R4 untuk pembatalan paralel dan untuk pembatalan oleh peserta di daftar tunggu.</td></tr>
+  <tr><td>🔒 Vex</td><td>Security Engineer (custom)</td><td>"Cukup tahu email, saya bisa mengeluarkan orang lain dan menaikkan teman saya." Celah ini tercatat sebagai crack.</td></tr>
+  <tr><td>🧑‍🏫 Bu Ratna</td><td>Peserta fiktif, guru yang mendaftar lewat ponsel</td><td>"Saya naik dari daftar tunggu jam 9 malam, siapa yang memberi tahu saya?" Dari sini lahir penanda promosi di layar admin.</td></tr>
+</table>
+
+<footer>Sumber: <code>.memlog.md</code> dan <code>forged-idea.md</code> di folder ini · Acuan: <code>docs/intent-kelasku.md</code> (R1–R7), <code>brainstorm-intent.md</code></footer>
+</main>
+</body>
+</html>
