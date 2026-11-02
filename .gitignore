@@ -3,3 +3,9 @@ _bmad/custom/*.user.toml
 .env
 .env.*
 !.env.example
+/data/
+/backups/
+/dist/
+/node_modules/
+/test-results/
+/playwright-report/
