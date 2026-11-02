@@ -1,0 +1,77 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-03-2026 02:58
+last_updated: 11-03-2026 02:58
+project: aisdlc-kelasku
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: backlog
+  1-1-kerangka-repositori-yang-bisa-dijalankan-dan-diuji: backlog
+  1-2-waktu-jakarta-format-tanggal-glosarium-dan-registri-error-be: backlog
+  1-3-fondasi-data-koneksi-sqlite-migrasi-transaksi-tulis-dan-harn: backlog
+  1-4-api-masuk-dan-keluar-admin: backlog
+  1-5-halaman-masuk-admin-dan-kerangka-ui-bersama: backlog
+  1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran: backlog
+  1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo-r1-r2-r3: backlog
+  1-8-halaman-pendaftaran-peserta-yang-ramah-ponsel: backlog
+  1-9-tabel-kelas-admin: backlog
+  1-10-daftar-pendaftaran-di-halaman-kelas-admin: backlog
+  1-11-api-ubah-kelas-dengan-batas-kuota-r7-dan-promosi-saat-kuota: backlog
+  1-12-halaman-ubah-kelas: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-api-pembatalan-idempoten-dengan-promosi-otomatis-r4: backlog
+  2-2-halaman-status-peserta-lewat-email: backlog
+  2-3-peserta-membatalkan-dari-halaman-status: backlog
+  2-4-admin-membatalkan-atas-nama-peserta: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-api-presensi-per-sesi-dengan-penjaga-tanggal-r5: backlog
+  3-2-daftar-sesi-dengan-status-presensi-di-halaman-kelas-admin: backlog
+  3-3-formulir-presensi-sesi: backlog
+  3-4-penguncian-tanggal-sesi-berpresensi-dan-konfirmasi-perubahan: backlog
+  3-5-should-bawaan-semua-hadir-di-formulir-presensi-baru: backlog
+  3-6-should-beranda-sesi-hari-ini: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-kelayakan-sertifikat-dan-api-rekap-kelas-r6: backlog
+  4-2-grid-rekap-kehadiran: backlog
+  4-3-ekspor-rekap-csv: backlog
+  4-4-kehadiran-dan-kelayakan-di-halaman-status-peserta: backlog
+  4-5-should-status-tidak-mungkin-layak: backlog
+  4-6-kesiapan-rilis-bukti-kinerja-dan-pencadangan: backlog
+  4-7-penyajian-produksi-lewat-https: backlog
+  epic-4-retrospective: optional
