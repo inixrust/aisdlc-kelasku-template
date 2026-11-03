@@ -16,9 +16,10 @@ Di Linux/WSL tanpa pustaka sistem browser (`libnss3`, `libnspr4`, `libasound2`),
 
 | Perintah | Isi |
 | --- | --- |
-| `npm test` | Seluruh Vitest (project `unit` + `integration`), `TZ=UTC` (HP-1) |
+| `npm test` | Seluruh Vitest: project `unit` + `integration` dengan `TZ=UTC` (HP-1), ditambah `tz-utc`, `tz-jakarta`, `tz-jayapura` (A-12) |
 | `npx vitest run --project unit` | Domain murni, `src/shared`, klien, fitness test arsitektur |
 | `npx vitest run --project integration` | `src/server/{data,services,http}`, `scripts/`, `test/` dengan berkas SQLite sementara yang nyata |
+| `npx vitest run --project 'tz-*'` | Hanya test sensitif waktu (`*.tz.test.ts`), sekali per zona proses `UTC`, `Asia/Jakarta`, `Asia/Jayapura` |
 | `npx vitest run -t "R3"` | Semua test aturan R3 (ID aturan ada di nama test) |
 | `npx vitest` | Mode watch |
 | `npm run test:e2e` | Build produksi, server `NODE_ENV=test` + `KELASKU_FAKE_NOW`, project `admin-desktop` dan `participant-mobile` |
@@ -27,6 +28,8 @@ Di Linux/WSL tanpa pustaka sistem browser (`libnss3`, `libnspr4`, `libasound2`),
 | `npx playwright show-report` | Laporan HTML run terakhir (`playwright-report/`) |
 | `npx playwright show-trace test-results/<test>/trace.zip` | Trace test yang gagal |
 | `npm run typecheck` | `tsc` untuk klien, server, test, dan e2e |
+
+Test yang hasilnya bisa bergantung pada zona proses (clock, format tanggal, R5) diberi akhiran `*.tz.test.ts`. Berkas itu tidak ikut `unit`/`integration`; ia dijalankan di tiga project tz dan harus lulus dengan ekspektasi yang sama di ketiganya.
 
 Sebelum commit: `npm test`, `npm run test:e2e`, dan `npm run typecheck` harus hijau (AGENTS.md). CI menjalankan perintah yang sama (lihat §CI). `CI=1` mengaktifkan `forbidOnly`, retry 2, dan reporter JUnit (`test-results/junit.xml`).
 
