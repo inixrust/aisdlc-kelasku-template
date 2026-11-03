@@ -2,7 +2,8 @@ import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-const apiPort = process.env.PORT ?? '3000';
+// Sama dengan `readPort` di server: PORT kosong berarti 3000.
+const apiPort = process.env.PORT?.trim() || '3000';
 
 export default defineConfig(({ command }) => {
   // `vite build` selalu menghasilkan bundle produksi, juga saat dipanggil dengan NODE_ENV=test (e2e, AD-14).

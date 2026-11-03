@@ -77,12 +77,15 @@ function resolveRelative(fromPath: string, specifier: string): string | null {
 const WALL_CLOCK_PATTERNS: Array<[RegExp, string]> = [
   [/\bnew\s+Date\s*\(/, 'new Date('],
   [/\bDate\.now\s*\(/, 'Date.now('],
+  [/(?<!\bnew\s+)(?<![.\w])Date\s*\(\s*\)/, 'Date()'],
   [/\.toISOString\(\)\s*\.slice\(\s*0\s*,\s*10\s*\)/, 'toISOString().slice(0, 10)'],
 ];
 
 const SQL_TIME_PATTERNS: Array<[RegExp, string]> = [
   [/\bCURRENT_(?:TIMESTAMP|DATE|TIME)\b/i, 'CURRENT_TIMESTAMP/CURRENT_DATE/CURRENT_TIME'],
-  [/\b(?:datetime|date|time|julianday|unixepoch|strftime)\s*\([^)]*'now'/i, "fungsi waktu SQL dengan 'now'"],
+  [/\b(?:datetime|date|time|julianday|unixepoch|strftime)\s*\([^)]*['"]now['"]/i, "fungsi waktu SQL dengan 'now'"],
+  // Tanpa argumen waktu, SQLite memakai waktu sekarang.
+  [/\b(?:datetime|date|time|julianday|unixepoch)\s*\(\s*\)/i, 'fungsi waktu SQL tanpa argumen'],
 ];
 
 function checkFiles(files: readonly SourceFile[]): Violation[] {
@@ -105,9 +108,16 @@ function checkFiles(files: readonly SourceFile[]): Violation[] {
           const clientToServer = layer === 'client' && target.startsWith('src/server/');
           const forbiddenLayer =
             targetLayer !== null && targetLayer !== layer && !ALLOWED_LAYER_DEPS[layer].includes(targetLayer);
-          if (leavesShared || clientToServer || forbiddenLayer) {
+          // domain/ murni: berkas server di luar lapisan (mis. clock.ts, main.ts) juga terlarang.
+          const leavesPureDomain =
+            layer === 'domain' && !target.startsWith('src/server/domain/') && !target.startsWith('src/shared/');
+          if (leavesShared || clientToServer || forbiddenLayer || leavesPureDomain) {
             violations.push({ rule: 'layer-direction', path: file.path, detail: `${layer} → ${target}` });
           }
+        }
+
+        if (layer === 'domain' && specifier.startsWith('node:')) {
+          violations.push({ rule: 'layer-direction', path: file.path, detail: `domain → ${specifier} (I/O)` });
         }
       }
 
@@ -177,6 +187,7 @@ describe('architecture fitness (HP-3)', () => {
       ['src/server/services/x.ts', 'const t = Date.now();'],
       ['src/server/domain/x.ts', 'const today = clock.now().toISOString().slice(0, 10);'],
       ['src/server/services/x.ts', 'const today = d.toISOString().slice(0,10);'],
+      ['src/server/domain/x.ts', 'const s = Date();'],
     ])('flags wall-clock use in %s: %s', (filePath, content) => {
       expect(rulesHit([{ path: filePath, content }])).toContain('no-wall-clock-in-domain-services');
     });
@@ -189,6 +200,8 @@ describe('architecture fitness (HP-3)', () => {
       'CREATE TABLE t (created_at TEXT DEFAULT CURRENT_TIMESTAMP);',
       "CREATE TABLE t (created_at TEXT DEFAULT (datetime('now')));",
       "CREATE TABLE t (created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')));",
+      'CREATE TABLE t (created_at TEXT DEFAULT (datetime()));',
+      'CREATE TABLE t (d TEXT DEFAULT (date( )));',
     ])('flags SQL time functions in migrations: %s', (content) => {
       expect(rulesHit([{ path: 'src/server/data/migrations/001_init.sql', content }])).toContain(
         'no-sql-time-functions-in-migrations',
@@ -212,6 +225,8 @@ describe('architecture fitness (HP-3)', () => {
       ['src/server/domain/x.ts', "import { repo } from '../data/classes-repo.js';"],
       ['src/server/http/routes.ts', "import { repo } from '../data/classes-repo.js';"],
       ['src/server/data/x.ts', "export { y } from '../services/y.js';"],
+      ['src/server/domain/x.ts', "import { createClock } from '../clock.js';"],
+      ['src/server/domain/x.ts', "import { readFileSync } from 'node:fs';"],
     ])('flags imports against the layer direction in %s', (filePath, content) => {
       expect(rulesHit([{ path: filePath, content }])).toContain('layer-direction');
     });

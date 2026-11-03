@@ -21,7 +21,8 @@ const viteBin = binPath('vite');
 const tsxCli = binPath('tsx');
 
 const children: ChildProcess[] = [
-  spawn(process.execPath, [viteBin], { stdio: 'inherit' }),
+  // Vite juga membaca `.env` agar proxy `/api` memakai PORT yang sama dengan server.
+  spawn(process.execPath, ['--env-file-if-exists=.env', viteBin], { stdio: 'inherit' }),
   spawn(
     process.execPath,
     [tsxCli, 'watch', '--env-file-if-exists=.env', 'src/server/main.ts'],
@@ -41,7 +42,7 @@ function stopAll(exitCode: number): void {
 }
 
 for (const child of children) {
-  child.on('exit', (code) => stopAll(code ?? 0));
+  child.on('exit', (code, signal) => stopAll(code ?? (signal === null ? 0 : 1)));
   child.on('error', () => stopAll(1));
 }
 

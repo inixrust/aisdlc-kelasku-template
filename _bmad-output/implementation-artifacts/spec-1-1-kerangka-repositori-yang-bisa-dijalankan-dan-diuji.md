@@ -2,7 +2,7 @@
 title: 'Story 1.1: Kerangka repositori yang bisa dijalankan dan diuji'
 type: 'chore'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
 baseline_commit: '7fae43125e9250a4105d956115403ba830dca822'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -78,6 +78,33 @@ context:
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Sumber | Temuan | Verdict | Bukti | Rute |
+|---|--------|--------|---------|-------|------|
+| 1 | blind | `package-lock.json` tidak ada di diff | false | Lockfile terkomit di 3ab2037; hanya dikecualikan dari berkas diff review | tolak |
+| 2 | blind, edge (+klaim) | Proxy Vite ke port salah bila `PORT` hanya di `.env` | medium | `dev.ts` menjalankan Vite tanpa `.env`; dibuktikan: setelah tambalan, `.env` `PORT=3456` → `/api` via 5173 sampai ke 3456 | patch |
+| 3 | edge | `PORT=` kosong → target proxy `127.0.0.1:` | low | `?? '3000'` tidak menangkap string kosong; server memakai 3000 | patch |
+| 4 | blind, edge, verif | `/assets/<hilang>` dibalas `index.html` 200 | medium | Probe verif: `GET /assets/missing.js` → 200 text/html; tab lama setelah deploy gagal MIME | patch |
+| 5 | verif | Cabang HEAD fallback SPA tanpa test | low | Tidak ada test `HEAD` di `src/`/`e2e/` | patch |
+| 6 | blind, edge | Fungsi waktu SQL tanpa argumen (`datetime()`) lolos | low | Regex mensyaratkan `'now'`; SQLite tanpa argumen = sekarang | patch |
+| 7 | blind | Pindai SQL di `.ts` `data/` | low | Spec membatasi aturan ke migrasi; jarang dan butuh aturan baru | tolak |
+| 8 | blind, edge, verif | `domain/` boleh impor `../clock.js`/`node:*` | medium | `layerOf` null → lolos; melanggar domain murni AGENTS.md | patch |
+| 9 | blind, edge | `Date()` tanpa `new` lolos | low | Pola hanya `new Date(`/`Date.now(` | patch |
+| 10 | edge | `new Date(iso)` di domain ikut ditandai | false | Gagal keras, bukan diam; AGENTS.md melarang `new Date()` di domain/services | tolak |
+| 11 | blind | Status sprint `in-progress` vs spec `in-review` | false | Sinkron sprint dilakukan di langkah present | tolak |
+| 12 | blind | `@types/*` di luar tabel Stack | false | Spine baris 209–211 mencantumkan ketiganya | tolak |
+| 13 | blind | `clientDir` relatif terhadap cwd | low | `npm start` selalu dari root paket; jarang | tolak |
+| 14 | blind, edge | `app.close()` reject tanpa penanganan | low | `void ...then()` tanpa handler reject | patch |
+| 15 | blind, edge | `dev.ts` anak mati oleh sinyal → exit 0 | low | `code ?? 0` | patch |
+| 16 | edge | Anak abaikan SIGTERM → hang | maybe-false | Perlu bukti vite/tsx mengabaikan SIGTERM; paling banter low | tolak |
+| 17 | blind | AGENTS.md masih TODO pra-scaffold | low | Bagian "Menjalankan" belum diperbarui; berkas konteks agen | defer |
+| 18 | blind | Catatan audit/chunk/AD-6 tidak dilacak | false | Sudah tercatat di Implementation Notes/epic context; tanpa kerugian bernama | tolak |
+| 19 | edge | `PORT=0`/`1e3` diterima | low | Pilihan operator; jarang | tolak |
+| 20 | edge | Impor alias/non-relatif lolos | false | Tidak ada `paths`/`baseUrl` di tsconfig | tolak |
+| 21 | edge | Berkas `.js/.mjs` tidak dipindai | low | Repo TypeScript; jarang | tolak |
+| 22 | edge | Root pindaian hilang → crash | false | Gagal keras; ketiga root ada | tolak |
+| 23 | edge | `/API/x` atau `//api/x` → index.html | low | Rute Fastify case-sensitive; tidak ada klien yang memanggilnya | tolak |
+| 24 | edge | Modul basi di `dist/server` | low | Tidak diimpor kecuali direferensikan; jarang | tolak |
 
 ## Design Notes
 

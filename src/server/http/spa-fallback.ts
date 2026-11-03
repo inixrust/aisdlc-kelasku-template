@@ -20,7 +20,9 @@ export async function registerSpaFallback(app: FastifyInstance, clientDir: strin
   app.setNotFoundHandler((request, reply) => {
     const pathname = request.url.split('?', 1)[0] ?? '';
     const isApi = pathname === '/api' || pathname.startsWith('/api/');
-    const isPageRequest = request.method === 'GET' || request.method === 'HEAD';
+    // Aset build yang tidak ada (mis. hash lama setelah deploy) → 404, bukan index.html.
+    const isMissingAsset = pathname.startsWith('/assets/');
+    const isPageRequest = (request.method === 'GET' || request.method === 'HEAD') && !isMissingAsset;
 
     if (!isApi && isPageRequest && hasClientBuild) {
       return reply.type('text/html; charset=utf-8').sendFile('index.html');

@@ -54,6 +54,18 @@ describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
     expect(response.body).toContain('kelasku');
   });
 
+  it('serves index.html for HEAD requests to SPA deep links', async () => {
+    const response = await app.inject({ method: 'HEAD', url: '/admin/kelas' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toMatch(/text\/html/);
+  });
+
+  it('returns the 404 envelope for missing build assets instead of index.html', async () => {
+    const response = await app.inject({ method: 'GET', url: '/assets/old-hash.js' });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual(NOT_FOUND_ENVELOPE);
+  });
+
   it('returns the 404 envelope for non-GET requests to non-API paths', async () => {
     const response = await app.inject({ method: 'POST', url: '/admin/kelas' });
     expect(response.statusCode).toBe(404);
