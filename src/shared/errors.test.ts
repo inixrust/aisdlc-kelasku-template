@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ERRORS, getError, toErrorEnvelope, type ErrorCode } from './errors.js';
+import { AppError, ERRORS, getError, isAppError, toErrorEnvelope, type ErrorCode } from './errors.js';
 
 describe('error registry (AD-8)', () => {
   it('gives every code an HTTP status and a non-empty Indonesian message', () => {
@@ -41,5 +41,21 @@ describe('error registry (AD-8)', () => {
     expect(toErrorEnvelope('not_found', { title: 'x' })).toEqual({
       error: { code: 'not_found', message: 'Halaman atau data tidak ditemukan.', fields: { title: 'x' } },
     });
+  });
+
+  it('AppError carries the registry code, status, message, fields, and cause', () => {
+    const cause = new Error('SQLITE_BUSY');
+    const error = new AppError('database_busy', { cause });
+    expect(error).toBeInstanceOf(Error);
+    expect(isAppError(error)).toBe(true);
+    expect(isAppError(cause)).toBe(false);
+    expect(error.code).toBe('database_busy');
+    expect(error.httpStatus).toBe(ERRORS.database_busy.httpStatus);
+    expect(error.message).toBe(ERRORS.database_busy.message);
+    expect(error.cause).toBe(cause);
+    expect(error.toEnvelope()).toEqual(toErrorEnvelope('database_busy'));
+    expect(new AppError('validation_error', { fields: { title: 'Wajib' } }).toEnvelope()).toEqual(
+      toErrorEnvelope('validation_error', { title: 'Wajib' }),
+    );
   });
 });

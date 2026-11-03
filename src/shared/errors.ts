@@ -35,6 +35,32 @@ export function getError(code: ErrorCode): ErrorDefinition {
   return { code, ...ERRORS[code] };
 }
 
+/**
+ * Error yang membawa kode registri. Dilempar oleh `data/` dan `services/`; lapisan HTTP
+ * memetakannya ke `httpStatus` + envelope AD-8. Pesan diambil dari registri, bukan string bebas.
+ */
+export class AppError extends Error {
+  readonly code: ErrorCode;
+  readonly httpStatus: number;
+  readonly fields: Record<string, string> | undefined;
+
+  constructor(code: ErrorCode, options: { fields?: Record<string, string>; cause?: unknown } = {}) {
+    super(ERRORS[code].message, options.cause === undefined ? undefined : { cause: options.cause });
+    this.name = 'AppError';
+    this.code = code;
+    this.httpStatus = ERRORS[code].httpStatus;
+    this.fields = options.fields;
+  }
+
+  toEnvelope(): ErrorEnvelope {
+    return toErrorEnvelope(this.code, this.fields);
+  }
+}
+
+export function isAppError(value: unknown): value is AppError {
+  return value instanceof AppError;
+}
+
 export function toErrorEnvelope(code: ErrorCode, fields?: Record<string, string>): ErrorEnvelope {
   const { message } = ERRORS[code];
   return fields === undefined ? { error: { code, message } } : { error: { code, message, fields } };
