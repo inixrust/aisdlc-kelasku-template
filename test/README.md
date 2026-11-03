@@ -79,6 +79,18 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | `seed:demo` | Saat ini hanya membuat/memperbarui admin seed dari `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` (keduanya wajib; kosong → exit 1 tanpa menyentuh DB). Kelas demo menyusul Story 1.7. Jalankan hanya saat server mati. |
 | Test HTTP admin | `buildApp({ adminRoutes: [...], onRoute })` memasang rute uji di dalam plugin auth `/api/admin` dan mencatat semua rute (P0-008); lihat `src/server/http/auth.test.ts`. |
 
+## UI admin dan kerangka bersama (story 1.5)
+
+| Berkas | Isi |
+| --- | --- |
+| `e2e/admin-login.spec.ts` | Masuk lewat formulir (kredensial salah, formulir kosong + ringkasan error), rute admin tanpa sesi → Masuk `?next=` → kembali, top bar, `/admin` → `/admin/kelas`, Keluar + Back, Keluar gagal, "Memuat…" > 300 ms, gagal muat + "Coba lagi", sesi habis (alert info), skip link. Axe di Masuk, Kelas, dan state gagal muat. |
+| `e2e/smoke.spec.ts` | Deep link SPA fallback kini memakai rute tak dikenal (`/admin/kelas` dialihkan ke Masuk). |
+| `src/client/api/client.test.ts` | Fetch wrapper (P2-012): envelope, `network_error`, `unexpected_response`, 401 → Masuk, `safeNextPath`, satu-satunya pemanggil `fetch`. `fetch`/`navigate` disuntik lewat `configureApi`, environment node. |
+| `src/client/styles/tokens.test.ts` | Token DESIGN.md ↔ `tokens.css` 1:1, dan tanpa hex/`rgb(` di `src/client/**` selain `tokens.css`. |
+
+- Halaman Kelas sementara memuat `GET /api/auth/session` dua kali (pertama `AdminLayout`, kedua halaman). Test state muat/gagal/sesi habis mencegat panggilan kedua dengan `page.route`; ganti ke `/api/admin/classes` saat Story 1.9.
+- Request lambat ditahan dengan promise gate di handler `page.route`, bukan jeda tetap.
+
 ## Helper DB, konkurensi, dan server (story 1.3)
 
 | Helper | Isi |

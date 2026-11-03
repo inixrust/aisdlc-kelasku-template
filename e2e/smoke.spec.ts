@@ -10,9 +10,10 @@ test('home page renders in Indonesian with no axe violations', async ({ page, ex
 });
 
 test('deep links are served by the SPA fallback', async ({ page, expectNoA11yViolations }) => {
-  const response = await page.goto('/admin/kelas');
+  const response = await page.goto('/tidak-ada/sama-sekali');
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1, name: 'Halaman tidak ditemukan' })).toBeVisible();
+  await expect(page).toHaveTitle('Halaman tidak ditemukan — Kelasku');
 
   await expectNoA11yViolations();
 });

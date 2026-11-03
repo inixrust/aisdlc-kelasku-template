@@ -1,18 +1,13 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router';
+import { PageLayout } from '../components/PageLayout';
 
 export function NotFoundPage() {
-  useEffect(() => {
-    document.title = 'Halaman tidak ditemukan — Kelasku';
-  }, []);
-
   return (
-    <main>
-      <h1>Halaman tidak ditemukan</h1>
+    <PageLayout title="Halaman tidak ditemukan">
       <p>Alamat yang Anda buka tidak ada di Kelasku.</p>
       <p>
         <Link to="/">Kembali ke beranda</Link>
       </p>
-    </main>
+    </PageLayout>
   );
 }

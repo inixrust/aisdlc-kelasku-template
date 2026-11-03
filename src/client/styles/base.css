@@ -1,0 +1,166 @@
+/* Dasar semua halaman (AD-13): reset ringan, tipografi, tombol, input, fokus. Hanya var(--…). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body-family);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line-height);
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol {
+  margin: 0;
+}
+
+h1 {
+  font-family: var(--font-page-title-family);
+  font-size: var(--font-page-title-size);
+  font-weight: var(--font-page-title-weight);
+  line-height: var(--font-page-title-line-height);
+}
+
+h2 {
+  font-family: var(--font-section-title-family);
+  font-size: var(--font-section-title-size);
+  font-weight: var(--font-section-title-weight);
+  line-height: var(--font-section-title-line-height);
+}
+
+h1:focus {
+  outline: none;
+}
+
+h1:focus-visible {
+  outline: var(--focus-indicator-outline);
+  outline-offset: var(--focus-indicator-offset);
+}
+
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+:focus-visible {
+  outline: var(--focus-indicator-outline);
+  outline-offset: var(--focus-indicator-offset);
+}
+
+table {
+  border-collapse: collapse;
+  font-family: var(--font-table-family);
+  font-size: var(--font-table-size);
+  font-weight: var(--font-table-weight);
+  line-height: var(--font-table-line-height);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tombol */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--button-primary-height);
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--button-primary-radius);
+  font: inherit;
+  font-weight: var(--font-label-weight);
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background: var(--button-primary-background);
+  color: var(--button-primary-foreground);
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--button-primary-background-hover);
+}
+
+.button-primary:disabled {
+  background: var(--button-primary-background-hover);
+}
+
+.button-secondary {
+  min-height: var(--button-secondary-height);
+  border: var(--button-secondary-border);
+  border-radius: var(--button-secondary-radius);
+  background: var(--button-secondary-background);
+  color: var(--button-secondary-foreground);
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+/* Input */
+.input {
+  display: block;
+  width: 100%;
+  min-height: var(--input-height);
+  padding: 0 var(--space-3);
+  border: var(--input-border);
+  border-radius: var(--input-radius);
+  background: var(--input-background);
+  color: var(--input-foreground);
+  font: inherit;
+}
+
+.input[aria-invalid='true'] {
+  border: var(--input-border-error);
+}
+
+/* Aksesibilitas */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 10;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-primary);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}

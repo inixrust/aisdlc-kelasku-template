@@ -1,14 +1,9 @@
-import { useEffect } from 'react';
+import { PageLayout } from '../components/PageLayout';
 
 export function HomePage() {
-  useEffect(() => {
-    document.title = 'Kelasku';
-  }, []);
-
   return (
-    <main>
-      <h1>Kelasku</h1>
+    <PageLayout title="Kelasku" documentTitle="Kelasku">
       <p>Pendaftaran dan kehadiran kelas pelatihan.</p>
-    </main>
+    </PageLayout>
   );
 }

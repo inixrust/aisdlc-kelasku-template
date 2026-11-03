@@ -1,0 +1,174 @@
+/*
+ * Token DESIGN.md (frontmatter) dipetakan 1:1 ke custom property (AD-13, UX-DR1).
+ * Satu-satunya berkas di src/client/ yang boleh berisi nilai warna literal.
+ * Dijaga oleh src/client/styles/tokens.test.ts; ubah DESIGN.md dan berkas ini bersamaan.
+ */
+:root {
+  /* colors */
+  --color-background: #FFFFFF;
+  --color-surface: #F8FAFC;
+  --color-surface-muted: #F1F5F9;
+  --color-border: #E2E8F0;
+  --color-border-strong: #64748B;
+  --color-text: #0F172A;
+  --color-text-muted: #475569;
+  --color-primary: #1D4ED8;
+  --color-primary-hover: #1E40AF;
+  --color-primary-foreground: #FFFFFF;
+  --color-focus-ring: #1D4ED8;
+  --color-info: #1D4ED8;
+  --color-info-bg: #EFF6FF;
+  --color-success: #15803D;
+  --color-success-bg: #F0FDF4;
+  --color-warning: #A16207;
+  --color-warning-bg: #FEFCE8;
+  --color-danger: #B91C1C;
+  --color-danger-bg: #FEF2F2;
+  --color-danger-foreground: #FFFFFF;
+
+  /* typography */
+  --font-page-title-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-page-title-size: 20px;
+  --font-page-title-weight: 600;
+  --font-page-title-line-height: 1.3;
+  --font-section-title-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-section-title-size: 16px;
+  --font-section-title-weight: 600;
+  --font-section-title-line-height: 1.4;
+  --font-body-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-body-size: 14px;
+  --font-body-weight: 400;
+  --font-body-line-height: 1.5;
+  --font-body-participant-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-body-participant-size: 16px;
+  --font-body-participant-weight: 400;
+  --font-body-participant-line-height: 1.5;
+  --font-table-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-table-size: 14px;
+  --font-table-weight: 400;
+  --font-table-line-height: 1.4;
+  --font-label-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-label-size: 14px;
+  --font-label-weight: 500;
+  --font-label-line-height: 1.4;
+  --font-caption-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-caption-size: 13px;
+  --font-caption-weight: 400;
+  --font-caption-line-height: 1.4;
+  --font-status-hero-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-status-hero-size: 24px;
+  --font-status-hero-weight: 700;
+  --font-status-hero-line-height: 1.25;
+
+  /* rounded */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-full: 9999px;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-table-row-y: 8px;
+  --space-table-cell-x: 12px;
+  --space-admin-max-width: 1280px;
+  --space-participant-max-width: 560px;
+  --space-page-margin-mobile: 16px;
+  --space-page-margin-desktop: 24px;
+  --space-touch-target: 44px;
+
+  /* components */
+  --button-primary-background: var(--color-primary);
+  --button-primary-background-hover: var(--color-primary-hover);
+  --button-primary-foreground: var(--color-primary-foreground);
+  --button-primary-radius: var(--radius-md);
+  --button-primary-height: 36px;
+  --button-primary-height-participant: var(--space-touch-target);
+
+  --button-secondary-background: var(--color-background);
+  --button-secondary-foreground: var(--color-text);
+  --button-secondary-border: 1px solid var(--color-border-strong);
+  --button-secondary-radius: var(--radius-md);
+  --button-secondary-height: 36px;
+
+  --button-danger-background: var(--color-danger);
+  --button-danger-foreground: var(--color-danger-foreground);
+  --button-danger-radius: var(--radius-md);
+  --button-danger-height: 36px;
+  --button-danger-height-participant: var(--space-touch-target);
+
+  --input-background: var(--color-background);
+  --input-foreground: var(--color-text);
+  --input-border: 1px solid var(--color-border-strong);
+  --input-border-error: 2px solid var(--color-danger);
+  --input-radius: var(--radius-sm);
+  --input-height: 36px;
+  --input-height-participant: var(--space-touch-target);
+
+  --focus-indicator-outline: 2px solid var(--color-focus-ring);
+  --focus-indicator-offset: 2px;
+
+  --data-table-header-background: var(--color-surface-muted);
+  --data-table-header-foreground: var(--color-text-muted);
+  --data-table-row-divider: 1px solid var(--color-border);
+  --data-table-row-padding-y: var(--space-table-row-y);
+  --data-table-cell-padding-x: var(--space-table-cell-x);
+
+  --status-badge-radius: var(--radius-full);
+  --status-badge-padding: 2px 8px;
+  --status-badge-terdaftar-background: var(--color-success-bg);
+  --status-badge-terdaftar-foreground: var(--color-success);
+  --status-badge-daftar-tunggu-background: var(--color-warning-bg);
+  --status-badge-daftar-tunggu-foreground: var(--color-warning);
+  --status-badge-dibatalkan-background: var(--color-surface-muted);
+  --status-badge-dibatalkan-foreground: var(--color-text-muted);
+  --status-badge-penuh-background: var(--color-danger-bg);
+  --status-badge-penuh-foreground: var(--color-danger);
+  --status-badge-selesai-background: var(--color-surface-muted);
+  --status-badge-selesai-foreground: var(--color-text-muted);
+  --status-badge-layak-background: var(--color-success-bg);
+  --status-badge-layak-foreground: var(--color-success);
+  --status-badge-belum-layak-background: var(--color-surface-muted);
+  --status-badge-belum-layak-foreground: var(--color-text-muted);
+  --status-badge-tidak-mungkin-layak-background: var(--color-danger-bg);
+  --status-badge-tidak-mungkin-layak-foreground: var(--color-danger);
+
+  --promotion-marker-foreground: var(--color-info);
+  --promotion-marker-background: var(--color-info-bg);
+  --promotion-marker-radius: var(--radius-sm);
+
+  --result-panel-background-terdaftar: var(--color-success-bg);
+  --result-panel-background-daftar-tunggu: var(--color-warning-bg);
+  --result-panel-radius: var(--radius-md);
+  --result-panel-padding: var(--space-4);
+
+  --alert-radius: var(--radius-md);
+  --alert-padding: var(--space-3);
+
+  --toast-background: var(--color-text);
+  --toast-foreground: var(--color-background);
+  --toast-radius: var(--radius-md);
+
+  --dialog-background: var(--color-background);
+  --dialog-radius: var(--radius-md);
+  --dialog-max-width: 440px;
+  --dialog-backdrop: rgba(15, 23, 42, 0.5);
+
+  --top-bar-background: var(--color-background);
+  --top-bar-border-bottom: 1px solid var(--color-border);
+  --top-bar-height: 48px;
+  --top-bar-active-link-foreground: var(--color-primary);
+
+  --participant-card-background: var(--color-background);
+  --participant-card-border: 1px solid var(--color-border);
+  --participant-card-radius: var(--radius-md);
+  --participant-card-padding: var(--space-4);
+
+  --attendance-toggle-size: 20px;
+  --attendance-toggle-hit-area: 32px;
+  --attendance-toggle-checked-background: var(--color-primary);
+  --attendance-toggle-border: 1px solid var(--color-border-strong);
+}

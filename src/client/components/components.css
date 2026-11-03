@@ -1,0 +1,214 @@
+/* Komponen bersama (AD-13). Hanya var(--…) dari tokens.css. */
+
+/* Kepala halaman non-admin: hanya nama aplikasi, tanpa navigasi global (UX-DR2). */
+.site-header {
+  display: flex;
+  align-items: center;
+  min-height: var(--top-bar-height);
+  padding: 0 var(--space-page-margin-desktop);
+  border-bottom: var(--top-bar-border-bottom);
+  background: var(--top-bar-background);
+}
+
+.app-name {
+  font-weight: var(--font-section-title-weight);
+  font-size: var(--font-section-title-size);
+}
+
+.page-main {
+  max-width: var(--space-admin-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-page-margin-desktop);
+}
+
+.page-main:focus {
+  outline: none;
+}
+
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.page-narrow {
+  max-width: var(--space-participant-max-width);
+}
+
+/* Top bar admin */
+.top-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-6);
+  height: var(--top-bar-height);
+  padding: 0 var(--space-page-margin-desktop);
+  border-bottom: var(--top-bar-border-bottom);
+  background: var(--top-bar-background);
+}
+
+.top-bar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  align-self: stretch;
+}
+
+.top-bar-links {
+  display: flex;
+  gap: var(--space-4);
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.top-bar-links li {
+  display: flex;
+}
+
+.top-bar-link {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-1);
+  border-bottom: 2px solid transparent;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.top-bar-link:hover {
+  color: var(--top-bar-active-link-foreground);
+}
+
+.top-bar-link.active {
+  border-bottom-color: var(--top-bar-active-link-foreground);
+  color: var(--top-bar-active-link-foreground);
+  font-weight: var(--font-label-weight);
+}
+
+.top-bar-account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+  min-width: 0;
+}
+
+.top-bar-email {
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .site-header,
+  .page-main {
+    padding-left: var(--space-page-margin-mobile);
+    padding-right: var(--space-page-margin-mobile);
+  }
+
+  .top-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--top-bar-height);
+    row-gap: var(--space-2);
+    padding: var(--space-2) var(--space-page-margin-mobile);
+  }
+
+  .top-bar-nav {
+    min-height: var(--space-8);
+  }
+}
+
+/* Formulir */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field-label {
+  font-family: var(--font-label-family);
+  font-size: var(--font-label-size);
+  font-weight: var(--font-label-weight);
+  line-height: var(--font-label-line-height);
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--color-danger);
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line-height);
+}
+
+.icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin-top: 0.2em;
+}
+
+/* Alert dan ringkasan error */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--alert-padding);
+  border: 1px solid currentColor;
+  border-radius: var(--alert-radius);
+}
+
+.alert:focus {
+  outline: var(--focus-indicator-outline);
+  outline-offset: var(--focus-indicator-offset);
+}
+
+.alert-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--color-text);
+}
+
+.alert-info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.alert-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.alert-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.alert-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.error-summary ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-left: var(--space-4);
+}
+
+.error-summary a {
+  color: var(--color-danger);
+}
