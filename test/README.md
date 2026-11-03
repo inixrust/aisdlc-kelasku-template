@@ -28,7 +28,21 @@ Di Linux/WSL tanpa pustaka sistem browser (`libnss3`, `libnspr4`, `libasound2`),
 | `npx playwright show-trace test-results/<test>/trace.zip` | Trace test yang gagal |
 | `npm run typecheck` | `tsc` untuk klien, server, test, dan e2e |
 
-Sebelum commit: `npm test`, `npm run test:e2e`, dan `npm run typecheck` harus hijau (AGENTS.md). Belum ada CI (spine §Deferred); `CI=1` hanya mengaktifkan `forbidOnly`, retry 2, dan reporter JUnit (`test-results/junit.xml`).
+Sebelum commit: `npm test`, `npm run test:e2e`, dan `npm run typecheck` harus hijau (AGENTS.md). CI menjalankan perintah yang sama (lihat §CI). `CI=1` mengaktifkan `forbidOnly`, retry 2, dan reporter JUnit (`test-results/junit.xml`).
+
+## CI
+
+GitHub Actions, berkas `.github/workflows/test.yml`, berjalan di setiap pull request ke `main` dan setiap push ke `main`:
+
+| Job | Langkah |
+| --- | --- |
+| `unit` | `npm ci` → `npm run typecheck` → `npm test` (Vitest `unit` + `integration`, termasuk ulangan 50× skenario konkurensi) |
+| `e2e` | `npm ci` → `npx playwright install --with-deps chromium` (browser di-cache per lockfile) → `npm run test:e2e` (kedua project) |
+
+- Node dari `.nvmrc`; cache npm dari `package-lock.json`. Tidak ada secret yang dibutuhkan.
+- Bila `e2e` gagal, unduh artefak `playwright-report-<run>-<attempt>` (HTML report, trace, screenshot, video, `junit.xml`; disimpan 30 hari) dari halaman run, lalu buka dengan `npx playwright show-report` atau `show-trace`.
+- Mereproduksi kondisi CI secara lokal: `CI=1 npm run test:e2e`.
+- Belum ada sharding, burn-in, lint, atau notifikasi. Jadikan job `unit` dan `e2e` sebagai *required status checks* di aturan proteksi branch `main` agar PR merah tidak bisa di-merge.
 
 ## Struktur
 
@@ -102,6 +116,7 @@ test('@P1 R1: participant sees "Terdaftar" after registering', async ({ page, ui
 | `webServer` timeout / port 4310 dipakai | Ada server e2e lain yang masih hidup; matikan prosesnya. `reuseExistingServer` sengaja `false` agar clock palsu selalu berlaku |
 | Test tanggal lulus di laptop, gagal di mesin lain | Ada kode yang memakai zona proses; cari `new Date()`/`toISOString().slice(0,10)` di luar `clock.ts` (fitness test menjaga `domain/`/`services/`) |
 | Pelanggaran axe | Pesan menyebut `id` aturan, `help`, dan selector elemen; perbaiki di komponen, jangan menonaktifkan aturan |
+| Lulus lokal, gagal di CI | Jalankan `CI=1 npm run test:e2e` (retry 2, `forbidOnly`); periksa trace di artefak run. `test.only` yang tertinggal menggagalkan CI |
 
 ## Penegakan saat menulis (hook TEA)
 

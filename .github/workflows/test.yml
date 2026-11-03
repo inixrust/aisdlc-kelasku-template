@@ -1,0 +1,108 @@
+# Pipeline test Kelasku (GitHub Actions)
+# Dibuat lewat bmad-testarch-ci (TEA). Stack: fullstack | Framework: Vitest + Playwright
+#
+# Sengaja sederhana (keputusan 2026-11-03): typecheck + unit/integration (Vitest) dan E2E
+# (Playwright) di setiap pull request dan push ke main. Belum ada sharding, burn-in, lint,
+# atau notifikasi. Ulangan 50× skenario konkurensi (NFR-1) ada di dalam `npm test`, bukan
+# di job burn-in terpisah.
+#
+# Tidak ada secret yang dibutuhkan: e2e memakai server sendiri dengan NODE_ENV=test dan
+# KELASKU_FAKE_NOW dari playwright.config.ts. Jangan tambahkan .env atau kredensial di sini.
+
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# PR: batalkan run lama saat ada commit baru. main: biarkan setiap run selesai.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: "true"
+
+jobs:
+  unit:
+    name: Typecheck + unit/integration (Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Versi Node dibaca dari .nvmrc (AGENTS.md), bukan dari default runner.
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Project `unit` dan `integration` (SQLite sementara yang nyata, worker_threads).
+      - name: Run Vitest
+        run: npm test
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Cache browser per versi @playwright/test (dari lockfile).
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # Kedua project (admin-desktop, participant-mobile) memakai Chromium.
+      - name: Install Playwright Chromium + system deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # Saat cache kena, browser sudah ada; pustaka sistem (libnspr4 dkk.) tetap perlu dipasang.
+      - name: Install Playwright system deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # webServer di playwright.config.ts menjalankan `npm run build` lalu server produksi.
+      # CI=true: forbidOnly, retries 2, reporter list + HTML + JUnit.
+      - name: Run Playwright
+        run: npm run test:e2e
+
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+          if-no-files-found: ignore
