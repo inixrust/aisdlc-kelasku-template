@@ -2,7 +2,7 @@
 title: 'Story 1.4: API masuk dan keluar admin'
 type: 'feature'
 created: '2026-11-03'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '8773c926909dfb4dd43e6609f05f34ecf8be09c0'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -99,6 +99,30 @@ context:
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Sumber | Temuan | Verdict | Bukti | Rute |
+|---|--------|--------|---------|-------|------|
+| 1 | blind | `admin:create`/`seed:demo` butuh `tsx` (devDependency) di produksi | false | Spine §Deployment: produksi `npm ci && npm run build` (devDependency ikut terpasang); tabel versi menetapkan tsx untuk skrip. | tolak |
+| 2 | blind | Logout tanpa body / body JSON kosong → 415/400, cookie tak dikosongkan | low | Keputusan beku: tulis tanpa `Content-Type` → 415; klien Story 1.5 selalu mengirim `{}`. Jarang ditemui, perbaikan menambah cabang. | tolak |
+| 3 | blind, edge, vgap | 4xx lain (mis. 413) → 400 `validation_error` | false | Persis keputusan beku "4xx lain → 400 `validation_error`". | tolak |
+| 4 | edge | 5xx non-`AppError` diringkas jadi 500 | false | `database_busy` adalah `AppError` dan lolos utuh; keputusan beku "selainnya → 500 `internal_error`". | tolak |
+| 5 | blind, edge | `DELETE` tidak masuk penjaga 415 | false | Keputusan beku membatasi ke `POST/PATCH/PUT`; DELETE tanpa body. | tolak |
+| 6 | vgap | Tidak ada test 415 untuk PUT/PATCH (dan tulis non-JSON bersesi) | medium | Pre-verified: `WRITE_METHODS` bisa menyusut ke POST tanpa test gagal. | patch — `it.each(['POST','PUT','PATCH'])` di `auth.test.ts` |
+| 7 | blind, vgap | `readCookieSecure`/`addHoursIso` tanpa unit test | medium | Pre-verified: `main.ts`/parsing `COOKIE_SECURE` bisa rusak tanpa test gagal. | patch — `src/server/config.test.ts`; jalur `main.ts` → Story 4.7 |
+| 8 | blind | Cek privasi log email peka huruf besar | low | Login pertama mengirim email huruf besar; `not.toContain(lowercase)` bisa lolos. Perbaikan langsung. | patch — banding lowercase |
+| 9 | blind | `seed:demo` tidak menolak DB produksi | low | Butuh `SEED_ADMIN_*` diisi eksplisit (kosong di `.env.example`); jarang, perbaikan menambah guard. | tolak |
+| 10 | blind | Parameter scrypt tak tercatat; panjang password login tanpa batas | low | Belum ada kebutuhan rotasi parameter; scrypt atas 1 MB tetap murah (pra-hash PBKDF2). | tolak |
+| 11 | blind, edge | Prompt tersembunyi `admin:create`: escape sequence/surrogate ikut tersimpan, tanpa konfirmasi | low | Konfirmasi: keputusan beku "diminta sekali". Tombol panah di prompt password jarang; perbaikan menambah guard. | tolak |
+| 12 | blind | Spine §Konfigurasi belum memuat `SEED_ADMIN_*` dan kredensial e2e tetap | medium | Spine baris Konfigurasi hanya 5 env; perubahan arsitektur wajib lewat `bmad-architecture`. | defer |
+| 13 | blind | Login tak merotasi cookie lama; 401 sesi tak menghapus cookie basi | low | Banyak sesi per admin sah; sesi lama tetap kedaluwarsa 12 jam. | tolak |
+| 14 | blind | AC e2e penuh belum jalan (Chromium terblokir `libnspr4`) | medium | `e2e/admin-session.spec.ts` belum pernah dijalankan di mesin ini; test API lulus. | defer (CI) |
+| 15 | blind | `login` di service tanpa validasi input | false | Satu-satunya pemanggil (handler) mem-parse `loginRequestSchema`; tidak ada jalur lain yang tertunjuk. | tolak |
+| 16 | blind | `request.admin` bertipe nullable | low | Tidak ada handler produksi; tanpa kerugian bernama. | tolak |
+| 17 | edge | `SEED_ADMIN_PASSWORD` spasi saja diterima | low | Nilai dari operator; ≥ 8 karakter tetap ditegakkan. | tolak |
+| 18 | edge | Email tanpa normalisasi Unicode NFC | low | `normalizeEmail` = trim + lowercase sesuai AD-5/AGENTS.md. | tolak |
+| 19 | edge | Logout `database_busy` → cookie tak dikosongkan | low | Butuh kontensi tulis saat logout; klien bisa ulang. | tolak |
+| 20 | vgap | Pengecekan ulang password di dalam transaksi login tanpa test | medium | Pre-verified; butuh seam/barrier `worker_threads`. | defer |
+| 21 | vgap | `readHiddenLine` (TTY) tanpa test | medium | Pre-verified; butuh harness pseudo-terminal yang tidak ada di arsitektur. | defer |
 
 ## Verification
 

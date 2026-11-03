@@ -303,6 +303,21 @@ describe('/api/admin auth hook (AD-8, P0-008)', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it.each(['POST', 'PUT', 'PATCH'] as const)('answers 415 for a non-JSON %s with a valid session, without running the handler', async (method) => {
+    const token = sessionCookieOf(await login(main.app, { email: adminEmail, password: PASSWORD }));
+    handlerCalls = 0;
+    const response = await main.app.inject({
+      method,
+      url: method === 'POST' ? '/api/admin/uji' : '/api/admin/uji/1',
+      payload: 'x',
+      headers: { 'content-type': 'text/plain' },
+      cookies: { [SESSION_COOKIE]: token },
+    });
+    expect(response.statusCode).toBe(415);
+    expect(response.json()).toEqual(toErrorEnvelope('unsupported_media_type'));
+    expect(handlerCalls).toBe(0);
+  });
+
   it('runs the handler with request.admin for a valid session', async () => {
     const token = sessionCookieOf(await login(main.app, { email: adminEmail, password: PASSWORD }));
     handlerCalls = 0;
@@ -344,6 +359,6 @@ describe('logging privacy (NFR-8)', () => {
     expect(log).not.toContain(PASSWORD);
     expect(log).not.toContain(token);
     expect(log).not.toContain(SESSION_COOKIE);
-    expect(log).not.toContain(adminEmail);
+    expect(log.toLowerCase()).not.toContain(adminEmail.toLowerCase());
   });
 });
