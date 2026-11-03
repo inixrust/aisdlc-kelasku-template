@@ -1,23 +1,20 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
-test('home page renders in Indonesian with no axe violations', async ({ page }) => {
+test('home page renders in Indonesian with no axe violations', async ({ page, expectNoA11yViolations }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Kelasku' })).toBeVisible();
   await expect(page).toHaveTitle('Kelasku');
   await expect(page.locator('html')).toHaveAttribute('lang', 'id');
 
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations).toEqual([]);
+  await expectNoA11yViolations();
 });
 
-test('deep links are served by the SPA fallback', async ({ page }) => {
+test('deep links are served by the SPA fallback', async ({ page, expectNoA11yViolations }) => {
   const response = await page.goto('/admin/kelas');
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { level: 1, name: 'Halaman tidak ditemukan' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations).toEqual([]);
+  await expectNoA11yViolations();
 });
 
 test('unknown API routes return the 404 error envelope', async ({ request }) => {

@@ -143,7 +143,7 @@ function checkFiles(files: readonly SourceFile[]): Violation[] {
 }
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-const SCANNED_ROOTS = ['src', 'scripts', 'e2e'];
+const SCANNED_ROOTS = ['src', 'scripts', 'e2e', 'test'];
 /** Berkas ini sendiri berisi fixture pelanggaran sebagai string, jadi tidak ikut dipindai. */
 const SELF_PATH = 'src/architecture.test.ts';
 

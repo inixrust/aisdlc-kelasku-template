@@ -1,8 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createTempDir, type TempDir } from '../../../test/helpers/temp-dir.js';
 import { buildApp } from './app.js';
 
 const NOT_FOUND_ENVELOPE = {
@@ -10,20 +9,20 @@ const NOT_FOUND_ENVELOPE = {
 };
 
 describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
-  let clientDir: string;
+  let clientDir: TempDir;
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    clientDir = mkdtempSync(path.join(tmpdir(), 'kelasku-client-'));
-    writeFileSync(path.join(clientDir, 'index.html'), '<!doctype html><html lang="id"><title>Kelasku</title></html>');
-    mkdirSync(path.join(clientDir, 'assets'));
-    writeFileSync(path.join(clientDir, 'assets', 'app-abc123.js'), 'console.log("kelasku");');
-    app = await buildApp({ clientDir });
+    clientDir = createTempDir('kelasku-client-');
+    writeFileSync(clientDir.file('index.html'), '<!doctype html><html lang="id"><title>Kelasku</title></html>');
+    mkdirSync(clientDir.file('assets'));
+    writeFileSync(clientDir.file('assets', 'app-abc123.js'), 'console.log("kelasku");');
+    app = await buildApp({ clientDir: clientDir.path });
   });
 
   afterAll(async () => {
     await app.close();
-    rmSync(clientDir, { recursive: true, force: true });
+    clientDir.cleanup();
   });
 
   it.each(['GET', 'POST'] as const)('returns a 404 not_found envelope for unknown %s /api/* routes', async (method) => {
@@ -75,8 +74,8 @@ describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
 
 describe('HTTP shell without a client build (dev mode)', () => {
   it('returns the 404 envelope for every unknown path', async () => {
-    const emptyDir = mkdtempSync(path.join(tmpdir(), 'kelasku-empty-'));
-    const app = await buildApp({ clientDir: emptyDir });
+    const emptyDir = createTempDir('kelasku-empty-');
+    const app = await buildApp({ clientDir: emptyDir.path });
     try {
       for (const url of ['/x', '/api/tidak-ada']) {
         const response = await app.inject({ method: 'GET', url });
@@ -85,7 +84,7 @@ describe('HTTP shell without a client build (dev mode)', () => {
       }
     } finally {
       await app.close();
-      rmSync(emptyDir, { recursive: true, force: true });
+      emptyDir.cleanup();
     }
   });
 });
