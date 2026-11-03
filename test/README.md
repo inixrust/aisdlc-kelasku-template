@@ -61,6 +61,7 @@ test/helpers/               # helper Vitest bersama (dipakai juga oleh e2e)
   fixtures/                 # migrasi + task fixture untuk membuktikan harness (bukan skema produksi)
 e2e/                        # spec Playwright (*.spec.ts)
   support/fixtures.ts       # satu-satunya sumber `test`/`expect` untuk spec e2e
+  support/admin.ts          # E2E_ADMIN: kredensial admin seed e2e yang tetap (bukan rahasia)
 ```
 
 Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
@@ -68,8 +69,15 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | Helper | Story | Catatan |
 | --- | --- | --- |
 | clock beku untuk test, `*.tz.test.ts` dijalankan di tiga zona | 1.2 | `createClock()` di `src/server/clock.ts` |
-| fixture `adminLogin` (sesi cookie) | 1.4 / 1.5 | tambahkan ke `e2e/support/fixtures.ts` |
-| `webServer` e2e: hapus DB e2e → `seed:demo` → start, `DATABASE_PATH` khusus e2e | story yang membuat `seed:demo` (B-2) | ganti `command` di `playwright.config.ts` |
+
+## Admin dan seed e2e (story 1.4)
+
+| Helper | Isi |
+| --- | --- |
+| fixture `adminLogin()` | `POST /api/auth/login` dengan `E2E_ADMIN` lewat `page.request`; cookie `kelasku_session` tersimpan di konteks browser test itu, jadi `page` dan `page.request` berikutnya sudah masuk. Spec API tanpa browser memakai fixture `request` dan login sendiri (`e2e/auth-api.spec.ts`). |
+| `webServer` e2e | Hapus `data/e2e.db` (+ `-wal`/`-shm`) → `npm run build` → `npm run seed:demo` (migrasi + admin `E2E_ADMIN`, clock palsu) → `node dist/server/main.js`. `SEED_ADMIN_*` diisi dari `e2e/support/admin.ts` di `playwright.config.ts`. |
+| `seed:demo` | Saat ini hanya membuat/memperbarui admin seed dari `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` (keduanya wajib; kosong → exit 1 tanpa menyentuh DB). Kelas demo menyusul Story 1.7. Jalankan hanya saat server mati. |
+| Test HTTP admin | `buildApp({ adminRoutes: [...], onRoute })` memasang rute uji di dalam plugin auth `/api/admin` dan mencatat semua rute (P0-008); lihat `src/server/http/auth.test.ts`. |
 
 ## Helper DB, konkurensi, dan server (story 1.3)
 

@@ -33,9 +33,9 @@ describe('createServices (B-1)', () => {
   const testDb = createTestDb();
   afterAll(() => testDb.cleanup());
 
-  it('composes the (still empty) use-case object from db and clock', () => {
-    expect(createServices({ db: testDb.db, clock: testDb.clock })).toEqual({});
-    expect(testDb.services).toEqual({});
+  it('composes the use-case object from db and clock', () => {
+    expect(Object.keys(createServices({ db: testDb.db, clock: testDb.clock }))).toEqual(['auth']);
+    expect(Object.keys(testDb.services)).toEqual(['auth']);
   });
 
   it.each(['data/db.ts', 'services/index.ts'])(

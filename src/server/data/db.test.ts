@@ -181,7 +181,7 @@ describe('migrate (AD-12)', () => {
     expect(tableNames(db)).toEqual([]);
   });
 
-  it('ignores non-.sql files and accepts the (still empty) production migrations directory', () => {
+  it('ignores non-.sql files and applies the production migrations directory', () => {
     const dir = tempDir();
     const db = open(dir.file('kelasku.db'));
     // Direktori fixture berisi berkas `.sql.txt` yang harus diabaikan.

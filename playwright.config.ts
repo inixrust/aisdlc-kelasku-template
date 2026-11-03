@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_ADMIN } from './e2e/support/admin';
 
 const PORT = 4310;
+const E2E_DATABASE_PATH = './data/e2e.db';
 const CI = Boolean(process.env.CI);
 
 // AD-14: e2e berjalan atas build produksi dengan NODE_ENV=test dan zona browser UTC (HP-1).
@@ -37,9 +39,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // TODO(story seed:demo, B-2): hapus DB e2e lalu `npm run seed:demo` sebelum start.
-    // Server membuka DATABASE_PATH dan menjalankan migrasi saat start (story 1.3).
-    command: 'npm run build && node dist/server/main.js',
+    // B-2: DB e2e baru setiap run: hapus berkas (+ -wal/-shm) → build → seed:demo (migrasi + admin
+    // seed, clock palsu) → server produksi. `seed:demo` berjalan sebelum server hidup.
+    command: [
+      `node -e "for (const s of ['', '-wal', '-shm']) require('node:fs').rmSync('${E2E_DATABASE_PATH}' + s, { force: true })"`,
+      'npm run build',
+      'npm run seed:demo',
+      'node dist/server/main.js',
+    ].join(' && '),
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: false,
     timeout: 120_000,
@@ -47,7 +54,9 @@ export default defineConfig({
       NODE_ENV: 'test',
       PORT: String(PORT),
       KELASKU_FAKE_NOW: '2026-11-09T03:00:00.000Z',
-      DATABASE_PATH: './data/e2e.db',
+      DATABASE_PATH: E2E_DATABASE_PATH,
+      SEED_ADMIN_EMAIL: E2E_ADMIN.email,
+      SEED_ADMIN_PASSWORD: E2E_ADMIN.password,
     },
   },
 });

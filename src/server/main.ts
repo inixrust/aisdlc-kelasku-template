@@ -1,10 +1,10 @@
 import { createClock } from './clock.js';
+import { readCookieSecure, readDatabasePath } from './config.js';
 import { createDb, migrate } from './data/db.js';
 import { buildApp } from './http/app.js';
 import { createServices } from './services/index.js';
 
 const DEFAULT_PORT = 3000;
-const DEFAULT_DATABASE_PATH = './data/kelasku.db';
 // Story 4.7 menambah HOST; sampai itu server hanya mendengar di loopback.
 const HOST = '127.0.0.1';
 
@@ -17,10 +17,6 @@ function readPort(raw: string | undefined): number {
   return port;
 }
 
-function readDatabasePath(raw: string | undefined): string {
-  return raw === undefined || raw.trim() === '' ? DEFAULT_DATABASE_PATH : raw;
-}
-
 async function main(): Promise<void> {
   const port = readPort(process.env.PORT);
   const clock = createClock();
@@ -29,7 +25,11 @@ async function main(): Promise<void> {
   migrate(db, { now: () => clock.now() });
 
   const services = createServices({ db, clock });
-  const app = await buildApp({ services, logger: process.env.NODE_ENV === 'test' ? { level: 'warn' } : true });
+  const app = await buildApp({
+    services,
+    cookieSecure: readCookieSecure(process.env.COOKIE_SECURE),
+    logger: process.env.NODE_ENV === 'test' ? { level: 'warn' } : true,
+  });
   app.addHook('onClose', async () => {
     db.close();
   });

@@ -35,6 +35,18 @@ export function jakartaDateOf(instant: Date): string {
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
+/**
+ * Instan ISO `iso` ditambah `hours` jam, sebagai ISO-8601 UTC dengan milidetik (AD-15),
+ * mis. `expires_at = ctx.nowIso + 12 jam`. Ada di sini agar `services/` tidak membuat `Date` sendiri.
+ */
+export function addHoursIso(iso: string, hours: number): string {
+  const ms = Date.parse(iso);
+  if (Number.isNaN(ms) || !Number.isFinite(hours)) {
+    throw new Error(`addHoursIso: argumen tidak valid (${iso}, ${hours}).`);
+  }
+  return new Date(ms + hours * 3_600_000).toISOString();
+}
+
 function parseFakeNow(value: string): Date {
   // Hanya instan ISO-8601 UTC lengkap, mis. 2026-11-09T03:00:00.000Z.
   const isoUtc = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;

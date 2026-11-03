@@ -129,7 +129,12 @@ describe('HTTP error mapping (AD-8, R-020)', () => {
   });
 
   it('keeps AppError fields in the envelope', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/uji/validasi' });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/uji/validasi',
+      payload: '{}',
+      headers: { 'content-type': 'application/json' },
+    });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual(toErrorEnvelope('validation_error', { 'sessionDates.2': 'Tanggal sudah ada' }));
   });

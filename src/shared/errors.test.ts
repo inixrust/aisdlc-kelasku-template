@@ -17,6 +17,7 @@ describe('error registry (AD-8)', () => {
     ['unauthorized', 401],
     ['invalid_credentials', 401],
     ['unsupported_media_type', 415],
+    ['internal_error', 500],
     ['database_busy', 503],
     ['network_error', 503],
     ['unexpected_response', 502],
