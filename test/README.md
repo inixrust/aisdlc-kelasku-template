@@ -54,6 +54,11 @@ src/**/*.test.ts            # test Vitest ditempatkan di samping kodenya
 test/helpers/               # helper Vitest bersama (dipakai juga oleh e2e)
   temp-dir.ts               # createTempDir(): direktori unik di os.tmpdir() + cleanup()
   unique.ts                 # uniqueId(), uniqueEmail(), uniqueTitle()
+  test-db.ts                # TEST_NOW_ISO, fixedClock(iso), createTestDb(): SQLite sementara + migrasi + services
+  concurrency.ts            # runConcurrently(), defineConcurrentTask(), repeatConcurrent(), CONCURRENCY_REPEATS
+  concurrency-worker.ts     # entry worker_threads untuk runConcurrently (jangan diimpor langsung)
+  test-server.ts            # startTestServer(): Fastify sungguhan di port acak di atas DB test
+  fixtures/                 # migrasi + task fixture untuk membuktikan harness (bukan skema produksi)
 e2e/                        # spec Playwright (*.spec.ts)
   support/fixtures.ts       # satu-satunya sumber `test`/`expect` untuk spec e2e
 ```
@@ -63,9 +68,22 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | Helper | Story | Catatan |
 | --- | --- | --- |
 | clock beku untuk test, `*.tz.test.ts` dijalankan di tiga zona | 1.2 | `createClock()` di `src/server/clock.ts` |
-| DB test (`createDb` + migrasi di berkas sementara), `runConcurrently`, `repeatConcurrent` + `CONCURRENCY_REPEATS`, `startTestServer()` | 1.3 | taruh di `test/helpers/`, di atas `createTempDir` |
 | fixture `adminLogin` (sesi cookie) | 1.4 / 1.5 | tambahkan ke `e2e/support/fixtures.ts` |
 | `webServer` e2e: hapus DB e2e → `seed:demo` → start, `DATABASE_PATH` khusus e2e | story yang membuat `seed:demo` (B-2) | ganti `command` di `playwright.config.ts` |
+
+## Helper DB, konkurensi, dan server (story 1.3)
+
+| Helper | Isi |
+| --- | --- |
+| `createTestDb(opts?)` | Berkas SQLite sementara yang nyata: `createDb` → `migrate` (migrasi produksi, atau `migrationsDir`) → `createServices`, clock beku `TEST_NOW_ISO`. Mengembalikan `{ dbPath, db, clock, services, dir, cleanup }`. Satu per test file (atau per ulangan konkurensi). |
+| `fixedClock(iso?)` / `TEST_NOW_ISO` | `Clock` beku lewat `createClock({ NODE_ENV: 'test', KELASKU_FAKE_NOW })`; bawaan Senin 9 Nov 2026 10.00 WIB. |
+| `defineConcurrentTask(import.meta.url, 'nama', fn)` | Mendefinisikan task untuk worker. Harus diekspor dengan nama yang sama dari modul yang **bukan** `*.test.ts` (worker mengimpornya ulang); `fn` menerima `{ db, clock, services, input, index }` dengan koneksi milik worker itu. Input/hasil harus bisa di-clone. |
+| `runConcurrently(n, task, { dbPath, input?, nowIso?, busyTimeoutMs? })` | Menjalankan task di `n` worker_threads (n ≥ 2), masing-masing `createDb` + `createServices` sendiri, dilepas bersamaan lewat barrier `SharedArrayBuffer` + `Atomics`. Hasil per worker urut `index`: `{ ok: true, value }` atau `{ ok: false, code, message }` (tidak melempar). Worker dipakai ulang antar-panggilan. |
+| `stopConcurrencyWorkers()` | Hentikan pool worker; panggil di `afterAll` file yang memakai `runConcurrently`. |
+| `repeatConcurrent(times, scenario)` / `CONCURRENCY_REPEATS` (50) | Ulangi skenario berurutan; kegagalan menyebut "ulangan k dari times". Pakai DB baru per ulangan. |
+| `startTestServer(opts?)` | Fastify sungguhan (`listen({ port: 0 })`) di atas DB test baru, tanpa build klien. Mengembalikan `{ baseUrl, dbPath, close }`, untuk `fetch` HTTP serentak (R1, R2). |
+
+`test/helpers/concurrency.test.ts` membuktikan harness dengan kontrol negatif (cek di luar transaksi melampaui batas 5 dari 20 worker) dan kontrol positif (`withWriteTx` tepat 5 baris di setiap 50 ulangan, tanpa error). Bila kontrol negatif gagal, harness tidak lagi menghasilkan konkurensi nyata; perbaiki harness sebelum mempercayai test R1/R2/R4/R7.
 
 ## Aturan menulis test
 
@@ -84,18 +102,52 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 ## Contoh
 
 ```ts
-// src/server/services/registrations.test.ts (integrasi; helper DB menyusul di story 1.3)
+// src/server/services/registrations.test.ts (integrasi)
 import { afterAll, describe, expect, it } from 'vitest';
-import { createTempDir } from '../../../test/helpers/temp-dir.js';
+import { createTestDb } from '../../../test/helpers/test-db.js';
 
 describe('R3: waitlist is FIFO by registration order', () => {
-  const dir = createTempDir();
-  afterAll(() => dir.cleanup());
+  const { services, cleanup } = createTestDb();
+  afterAll(() => cleanup());
 
   it('R3: the first waitlisted registrant is promoted first', () => {
     // Given kelas penuh dengan dua Daftar tunggu — When satu Terdaftar batal — Then antrean pertama naik
   });
 });
+```
+
+```ts
+// test/tasks/registration-tasks.ts — task worker di modul terpisah, BUKAN di berkas *.test.ts
+// (worker mengimpor ulang modulnya; berkas test akan mendaftarkan `it` di luar Vitest).
+import { defineConcurrentTask } from '../helpers/concurrency.js';
+
+export const register = defineConcurrentTask<{ email: string }, string>(import.meta.url, 'register', ({ input }) => {
+  // panggil use-case pendaftaran lewat `services` dengan `input.email`, kembalikan statusnya
+  void input.email;
+  return 'registered';
+});
+```
+
+```ts
+// src/server/services/registrations.concurrency.test.ts (R1, worker_threads)
+import { afterAll, expect, it } from 'vitest';
+import { CONCURRENCY_REPEATS, repeatConcurrent, runConcurrently, stopConcurrencyWorkers } from '../../../test/helpers/concurrency.js';
+import { createTestDb } from '../../../test/helpers/test-db.js';
+import { register } from '../../../test/tasks/registration-tasks.js';
+
+afterAll(() => stopConcurrencyWorkers());
+
+it('R1: 20 simultaneous registrations to a quota-5 class yield exactly 5 Terdaftar', async () => {
+  await repeatConcurrent(CONCURRENCY_REPEATS, async () => {
+    const testDb = createTestDb();
+    try {
+      const results = await runConcurrently(20, register, { dbPath: testDb.dbPath, input: (i) => ({ email: `p${i}@contoh.id` }) });
+      expect(results.filter((r) => !r.ok)).toEqual([]);
+    } finally {
+      testDb.cleanup();
+    }
+  });
+}, 120_000);
 ```
 
 ```ts

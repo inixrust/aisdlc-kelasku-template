@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx scripts/dev.ts",
-    "build": "vite build && tsc -p tsconfig.server.json",
+    "build": "vite build && tsc -p tsconfig.server.json && node -e \"const fs = require('node:fs'); fs.rmSync('dist/server/data/migrations', { recursive: true, force: true }); fs.cpSync('src/server/data/migrations', 'dist/server/data/migrations', { recursive: true })\"",
     "start": "node --env-file-if-exists=.env dist/server/main.js",
     "test": "vitest run",
     "test:e2e": "playwright test",

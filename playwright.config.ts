@@ -37,8 +37,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // TODO(story seed:demo, B-2): hapus DB e2e lalu `npm run seed:demo` sebelum start,
-    // dengan DATABASE_PATH khusus e2e. Server belum membuka DB di story 1.1.
+    // TODO(story seed:demo, B-2): hapus DB e2e lalu `npm run seed:demo` sebelum start.
+    // Server membuka DATABASE_PATH dan menjalankan migrasi saat start (story 1.3).
     command: 'npm run build && node dist/server/main.js',
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: false,
@@ -47,6 +47,7 @@ export default defineConfig({
       NODE_ENV: 'test',
       PORT: String(PORT),
       KELASKU_FAKE_NOW: '2026-11-09T03:00:00.000Z',
+      DATABASE_PATH: './data/e2e.db',
     },
   },
 });

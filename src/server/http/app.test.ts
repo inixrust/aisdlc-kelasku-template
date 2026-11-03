@@ -2,11 +2,21 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTempDir, type TempDir } from '../../../test/helpers/temp-dir.js';
+import { createTestDb, type TestDb } from '../../../test/helpers/test-db.js';
+import { AppError, toErrorEnvelope } from '../../shared/errors.js';
 import { buildApp } from './app.js';
 
 const NOT_FOUND_ENVELOPE = {
   error: { code: 'not_found', message: 'Halaman atau data tidak ditemukan.' },
 };
+
+let testDb: TestDb;
+beforeAll(() => {
+  testDb = createTestDb();
+});
+afterAll(() => {
+  testDb.cleanup();
+});
 
 describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
   let clientDir: TempDir;
@@ -17,7 +27,7 @@ describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
     writeFileSync(clientDir.file('index.html'), '<!doctype html><html lang="id"><title>Kelasku</title></html>');
     mkdirSync(clientDir.file('assets'));
     writeFileSync(clientDir.file('assets', 'app-abc123.js'), 'console.log("kelasku");');
-    app = await buildApp({ clientDir: clientDir.path });
+    app = await buildApp({ services: testDb.services, clientDir: clientDir.path });
   });
 
   afterAll(async () => {
@@ -75,7 +85,7 @@ describe('HTTP shell: /api 404 envelope and SPA fallback (AD-1, AD-8)', () => {
 describe('HTTP shell without a client build (dev mode)', () => {
   it('returns the 404 envelope for every unknown path', async () => {
     const emptyDir = createTempDir('kelasku-empty-');
-    const app = await buildApp({ clientDir: emptyDir.path });
+    const app = await buildApp({ services: testDb.services, clientDir: emptyDir.path });
     try {
       for (const url of ['/x', '/api/tidak-ada']) {
         const response = await app.inject({ method: 'GET', url });
@@ -86,5 +96,41 @@ describe('HTTP shell without a client build (dev mode)', () => {
       await app.close();
       emptyDir.cleanup();
     }
+  });
+});
+
+describe('HTTP error mapping (AD-8, R-020)', () => {
+  let emptyDir: TempDir;
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    emptyDir = createTempDir('kelasku-empty-');
+    app = await buildApp({ services: testDb.services, clientDir: emptyDir.path });
+    // Rute uji saja: meniru use-case yang melempar AppError (mis. database_busy dari withWriteTx).
+    app.get('/api/uji/sibuk', () => {
+      throw new AppError('database_busy', { cause: Object.assign(new Error('database is locked'), { code: 'SQLITE_BUSY' }) });
+    });
+    app.post('/api/uji/validasi', () => {
+      throw new AppError('validation_error', { fields: { 'sessionDates.2': 'Tanggal sudah ada' } });
+    });
+  });
+
+  afterAll(async () => {
+    await app.close();
+    emptyDir.cleanup();
+  });
+
+  it('maps AppError database_busy to HTTP 503 with the error envelope', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/uji/sibuk' });
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['content-type']).toMatch(/application\/json/);
+    expect(response.json()).toEqual(toErrorEnvelope('database_busy'));
+    expect(response.body).not.toContain('SQLITE_BUSY');
+  });
+
+  it('keeps AppError fields in the envelope', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/uji/validasi' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual(toErrorEnvelope('validation_error', { 'sessionDates.2': 'Tanggal sudah ada' }));
   });
 });

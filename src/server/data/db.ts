@@ -121,7 +121,7 @@ function listMigrations(dir: string): MigrationFile[] {
 
   const migrations: MigrationFile[] = [];
   for (const fileName of entries) {
-    if (!fileName.endsWith('.sql')) continue;
+    if (!fileName.toLowerCase().endsWith('.sql')) continue;
     const match = MIGRATION_FILE.exec(fileName);
     if (match?.[1] === undefined) {
       throw new Error(`Nama berkas migrasi tidak valid: ${fileName} (harus NNN_description.sql, huruf kecil).`);
@@ -187,18 +187,22 @@ export function migrate(db: Db, options: MigrateOptions = {}): MigrateResult {
   const applied: number[] = [];
   for (const migration of pending) {
     const sql = readFileSync(path.join(migrationsDir, migration.fileName), 'utf8');
+    let ran: boolean;
     try {
-      db.transaction(() => {
+      ran = db.transaction((): boolean => {
+        // Baca ulang di dalam write lock: proses lain mungkin sudah menerapkan migrasi ini.
+        if (userVersion(db) >= migration.version) return false;
         db.exec(sql);
         // PRAGMA tidak menerima parameter; versi berasal dari nama berkas yang sudah divalidasi.
         db.pragma(`user_version = ${migration.version}`);
+        return true;
       }).immediate();
     } catch (error) {
       throw new Error(`Migrasi ${migration.fileName} gagal; user_version tetap ${userVersion(db)}.`, {
         cause: error,
       });
     }
-    applied.push(migration.version);
+    if (ran) applied.push(migration.version);
   }
 
   return { fromVersion, toVersion: userVersion(db), applied, backupPath };

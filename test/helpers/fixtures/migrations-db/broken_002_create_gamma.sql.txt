@@ -1,0 +1,6 @@
+-- Fixture migrasi rusak (db.test.ts): pernyataan pertama sah, kedua salah, sehingga
+-- runner harus me-rollback tabel gamma dan tidak menaikkan user_version.
+CREATE TABLE gamma (
+  id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+CREATE TABEL salah_ketik (id INTEGER);
