@@ -195,4 +195,55 @@ describe('seed:demo (B-2(c))', () => {
       db.close();
     }
   }, 60_000);
+
+  // ATDD Story 1.7 — AC-15 (1.7-INT-009, P1; B-2b, prasyarat E2E 1.8/1.9). Risiko: R-016. FASE MERAH.
+  // Saat aktivasi: hapus `.skip`. Test AC-9 di atas (`toEqual` dua kelas demo) perlu disaring per judul
+  // karena seed kini menambah tiga kelas lagi (lihat checklist ATDD 1.7).
+  it.skip('[P1] AC-15 seeds a full class without waitlist, a full class with 3 waitlisted, and a finished class with registered + waitlisted, relative to the Clock today, idempotently', async () => {
+    const dbPath = dir.file('seed-registrations', 'kelasku.db');
+    const env = { DATABASE_PATH: dbPath, SEED_ADMIN_EMAIL: 'seed@lembaga.id', SEED_ADMIN_PASSWORD: 'password-seed-1' };
+    const today = '2026-11-09'; // KELASKU_FAKE_NOW runScript
+    const first = await runScript('seed:demo', { env });
+
+    interface ClassFacts {
+      quota: number;
+      lastDate: string;
+      registered: number;
+      waitlisted: number;
+    }
+    const snapshot = (): { classes: ClassFacts[]; registrations: number } => {
+      const db = createDb(dbPath);
+      try {
+        const classes = db
+          .prepare(
+            `SELECT c.quota AS quota,
+                    (SELECT MAX(s.session_date) FROM class_sessions s WHERE s.class_id = c.id) AS lastDate,
+                    (SELECT COUNT(*) FROM registrations r WHERE r.class_id = c.id AND r.status = 'registered') AS registered,
+                    (SELECT COUNT(*) FROM registrations r WHERE r.class_id = c.id AND r.status = 'waitlisted') AS waitlisted
+             FROM classes c ORDER BY c.id`,
+          )
+          .all() as ClassFacts[];
+        const registrations = (db.prepare('SELECT COUNT(*) AS n FROM registrations').get() as { n: number }).n;
+        return { classes, registrations };
+      } finally {
+        db.close();
+      }
+    };
+    const { classes } = snapshot();
+    const isOpen = (c: ClassFacts): boolean => c.lastDate > today;
+
+    // Kriteria inti: kelas Penuh tanpa daftar tunggu.
+    expect(classes.filter((c) => isOpen(c) && c.registered === c.quota && c.waitlisted === 0).length).toBeGreaterThanOrEqual(1);
+
+    expect(first.code).toBe(0);
+    expect(classes.filter((c) => isOpen(c) && c.registered === c.quota && c.waitlisted === 3).length).toBeGreaterThanOrEqual(1);
+    expect(classes.filter((c) => !isOpen(c) && c.registered >= 1 && c.waitlisted >= 1).length).toBeGreaterThanOrEqual(1);
+    // Tidak ada kelas yang melanggar R1.
+    expect(classes.filter((c) => c.registered > c.quota)).toEqual([]);
+
+    // Idempoten: jalan kedua tidak menambah kelas maupun pendaftaran.
+    const before = snapshot();
+    expect((await runScript('seed:demo', { env })).code).toBe(0);
+    expect(snapshot()).toEqual(before);
+  }, 60_000);
 });

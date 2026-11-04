@@ -107,6 +107,17 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 
 - Kelas seed hanya dibaca. Spec e2e membuat kelasnya sendiri lewat formulir atau `page.request.post('/api/admin/classes')` dengan judul ber-`uid`.
 
+## Pendaftaran berkuota (story 1.7, fase merah ATDD)
+
+| Berkas | Isi |
+| --- | --- |
+| `test/helpers/registrations.ts` | `givenClass(db, opts)` / `givenClassInFile(dbPath, opts)` membuat kelas lewat `services.classes.createClass` (opsi `nowIso` untuk kelas Selesai yang sah); `registrationsOf(services)`, `statusCounts`, `activeCount`, `oneTo(n)` |
+| `test/tasks/registration-tasks.ts` | Task worker `registerAtomic` (use-case produksi) dan `registerNonAtomic` (mutan mutation check A-11 dari tx-step `planRegistration`/`applyRegistration`) |
+| `src/server/services/registrations.concurrency.test.ts` | P0 R1/R2: worker ×50, HTTP `startTestServer()` ×50, dua mutation check |
+| `src/server/services/registrations.test.ts`, `src/server/http/public-registrations.test.ts`, `src/server/http/registrations.tz.test.ts`, `src/server/data/registrations-schema.test.ts`, `src/server/domain/registration-rules.test.ts` | R3, rute publik, batas 00.00 WIB, skema `registrations`, aturan domain |
+
+- Test R1–R3 fase merah memakai `it.fails`, bukan `.skip`. Test itu tetap dijalankan dan otomatis merah begitu perilakunya benar; saat itu ganti ke `it`. Rincian dan asumsi kontrak ada di `_bmad-output/test-artifacts/atdd-checklist-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md`.
+
 ## Helper DB, konkurensi, dan server (story 1.3)
 
 | Helper | Isi |
