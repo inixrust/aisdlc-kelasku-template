@@ -76,7 +76,7 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | --- | --- |
 | fixture `adminLogin()` | `POST /api/auth/login` dengan `E2E_ADMIN` lewat `page.request`; cookie `kelasku_session` tersimpan di konteks browser test itu, jadi `page` dan `page.request` berikutnya sudah masuk. Spec API tanpa browser memakai fixture `request` dan login sendiri (`e2e/auth-api.spec.ts`). |
 | `webServer` e2e | Hapus `data/e2e.db` (+ `-wal`/`-shm`) → `npm run build` → `npm run seed:demo` (migrasi + admin `E2E_ADMIN`, clock palsu) → `node dist/server/main.js`. `SEED_ADMIN_*` diisi dari `e2e/support/admin.ts` di `playwright.config.ts`. |
-| `seed:demo` | Saat ini hanya membuat/memperbarui admin seed dari `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` (keduanya wajib; kosong → exit 1 tanpa menyentuh DB). Kelas demo menyusul Story 1.7. Jalankan hanya saat server mati. |
+| `seed:demo` | Membuat/memperbarui admin seed dari `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` (keduanya wajib; kosong → exit 1 tanpa menyentuh DB), lalu menambah dua kelas demo relatif ke "hari ini" `Clock` (Story 1.6): "Demo: Excel untuk Laporan Keuangan" (today−7, today, today+7) dan "Demo: Public Speaking untuk Pemula" (today+7/+14/+21). Idempoten per judul. Jalankan hanya saat server mati. |
 | Test HTTP admin | `buildApp({ adminRoutes: [...], onRoute })` memasang rute uji di dalam plugin auth `/api/admin` dan mencatat semua rute (P0-008); lihat `src/server/http/auth.test.ts`. |
 
 ## UI admin dan kerangka bersama (story 1.5)
@@ -90,6 +90,18 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 
 - Halaman Kelas sementara memuat `GET /api/auth/session` dua kali (pertama `AdminLayout`, kedua halaman). Test state muat/gagal/sesi habis mencegat panggilan kedua dengan `page.route`; ganti ke `/api/admin/classes` saat Story 1.9.
 - Request lambat ditahan dengan promise gate di handler `page.route`, bukan jeda tetap.
+
+## Buat kelas dan tautan pendaftaran (story 1.6)
+
+| Berkas | Isi |
+| --- | --- |
+| `e2e/admin-class-create.spec.ts` | UJ-1 langkah 1–4: formulir Buat kelas (error server tanggal ganda di baris + ringkasan, nilai tetap, "Menyimpan…"), simpan → `/admin/kelas/{id}` + toast "Kelas tersimpan", kepala kelas (badge, kuota, tanggal, "Hari ini", tautan `{origin}/daftar/{publicCode}`), "Salin tautan" → clipboard + "Tautan disalin". Axe di formulir dan halaman kelas. |
+| `src/server/http/admin-classes.test.ts` | `POST /api/admin/classes` (201 + DTO, 400 `fields` tanpa baris baru) dan `GET /api/admin/classes/:id` (404 `class_not_found`, `publicCode` tanpa id). |
+| `src/server/domain/{session-dates,class-status}.test.ts` | `validateSessionDates` (kosong, ganda, tanpa tanggal setelah hari ini) dan `classStatus` (`max(session_date) <= today` → Selesai). |
+| `src/client/components/Badge.test.ts` | Render statis `react-dom/server`: teks Glosarium, ikon `aria-hidden`, Daftar tunggu bukan `danger`. |
+| `scripts/scripts.test.ts` (AC-9) | `seed:demo` menambah kelas demo idempoten, minimal satu bertanggal setelah hari ini. |
+
+- Kelas seed hanya dibaca. Spec e2e membuat kelasnya sendiri lewat formulir atau `page.request.post('/api/admin/classes')` dengan judul ber-`uid`.
 
 ## Helper DB, konkurensi, dan server (story 1.3)
 

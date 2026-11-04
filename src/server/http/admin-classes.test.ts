@@ -1,5 +1,5 @@
 /**
- * ATDD fase merah Story 1.6 — rute admin kelas.
+ * ATDD Story 1.6 (fase hijau) — rute admin kelas.
  * - AC-3 (1.6-API-001 + 1.6-API-002, P1): `POST /api/admin/classes` → 201 DTO; validasi → 400.
  * - AC-8 (1.6-API-003, P2): `GET /api/admin/classes/:id` id tak dikenal → 404 `class_not_found`.
  * Auth 401 untuk rute baru sudah dicakup enumerasi `onRoute` di `auth.test.ts` (P0-008).
@@ -9,9 +9,10 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTempDir, type TempDir } from '../../../test/helpers/temp-dir.js';
-import { createTestDb, TEST_NOW_ISO, type TestDb } from '../../../test/helpers/test-db.js';
+import { createTestDb, fixedClock, TEST_NOW_ISO, type TestDb } from '../../../test/helpers/test-db.js';
 import { uniqueEmail, uniqueTitle } from '../../../test/helpers/unique.js';
 import { getError } from '../../shared/errors.js';
+import { createServices } from '../services/index.js';
 import { buildApp } from './app.js';
 import { SESSION_COOKIE } from './session-cookie.js';
 
@@ -156,5 +157,68 @@ describe('GET /api/admin/classes/:id (FR5, AD-8, AD-10)', () => {
     expect(read.json<ClassDto>()).toMatchObject({ id: created.id, publicCode: created.publicCode, today: TODAY });
     expect(created.publicCode).toMatch(PUBLIC_CODE);
     expect(created.publicCode).not.toContain(String(created.id));
+  });
+
+  it('[P2] AC-8 FR5: a non-numeric class id answers 404 class_not_found, not a server error', async () => {
+    const response = await adminRequest('GET', '/api/admin/classes/abc');
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json<ErrorBody>().error.code).toBe(getError('class_not_found').code);
+  });
+});
+
+describe('POST /api/admin/classes — past-only dates (FR2, AD-19)', () => {
+  it('[P2] AC-1 FR2: a class whose only session is in the past answers 400 on sessionDates without a new row', async () => {
+    const before = count('SELECT COUNT(*) AS n FROM classes');
+
+    const response = await adminRequest('POST', '/api/admin/classes', validClass({ sessionDates: ['2026-11-02'] }));
+
+    expect(response.statusCode).toBe(getError('validation_error').httpStatus);
+    expect(response.json<ErrorBody>().error.fields?.sessionDates).toMatch(/\S/);
+    expect(count('SELECT COUNT(*) AS n FROM classes')).toBe(before);
+  });
+});
+
+describe('POST /api/admin/classes — malformed session dates (FR2, AD-8)', () => {
+  it('[P2] AC-3 FR2: an impossible calendar date or a non-string date answers 400 on sessionDates.0 without a new row', async () => {
+    const VALIDATION = getError('validation_error');
+    const before = count('SELECT COUNT(*) AS n FROM classes');
+
+    for (const sessionDates of [['2026-02-30', '2026-11-16'], [123, '2026-11-16']]) {
+      const response = await adminRequest('POST', '/api/admin/classes', validClass({ sessionDates }));
+      const label = JSON.stringify(sessionDates);
+      expect(response.statusCode, label).toBe(VALIDATION.httpStatus);
+      const { error } = response.json<ErrorBody>();
+      expect(error.code, label).toBe(VALIDATION.code);
+      expect(error.fields?.['sessionDates.0'], label).toMatch(/\S/);
+    }
+
+    expect(count('SELECT COUNT(*) AS n FROM classes')).toBe(before);
+  });
+});
+
+describe('GET /api/admin/classes/:id — derived status (FR4, AD-6)', () => {
+  it('[P2] AC-2 FR4: a new class reads as open, and as finished once today reaches its last session date', async () => {
+    const created = (await adminRequest('POST', '/api/admin/classes', validClass({ sessionDates: ['2026-11-16', '2026-11-23'] }))).json<ClassDto>();
+
+    const read = await adminRequest('GET', `/api/admin/classes/${created.id}`);
+    expect(read.statusCode).toBe(200);
+    expect(read.json<ClassDto & { status: string }>().status).toBe('open');
+
+    // Clock lain pada DB yang sama: Senin 23 Nov 2026 10.00 WIB = tanggal sesi terakhir.
+    const later = createServices({ db: testDb.db, clock: fixedClock('2026-11-23T03:00:00.000Z') });
+    expect(later.classes.getClass(created.id)).toMatchObject({ status: 'finished', today: '2026-11-23' });
+    const dayBefore = createServices({ db: testDb.db, clock: fixedClock('2026-11-22T03:00:00.000Z') });
+    expect(dayBefore.classes.getClass(created.id).status).toBe('open');
+  });
+});
+
+describe('POST /api/admin/classes — public code alphabet (P1-011, AD-10)', () => {
+  it('[P2] AC-8 FR6: every generated public code is 10 characters without digits', async () => {
+    for (let i = 0; i < 20; i += 1) {
+      const response = await adminRequest('POST', '/api/admin/classes', validClass());
+      expect(response.statusCode).toBe(201);
+      expect(response.json<ClassDto>().publicCode).toMatch(/^[A-Za-z_-]{10}$/);
+    }
   });
 });

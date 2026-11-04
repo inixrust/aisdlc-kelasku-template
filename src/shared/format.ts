@@ -40,7 +40,14 @@ function calendarNoon(date: string): Date | null {
   if (match === null) return null;
   const [, year, month, day] = match;
   const instant = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
-  if (instant.getUTCDate() !== Number(day) || instant.getUTCMonth() !== Number(month) - 1) return null;
+  // Date.UTC memetakan tahun 0–99 ke 19xx, jadi tahun juga dibandingkan.
+  if (
+    instant.getUTCFullYear() !== Number(year) ||
+    instant.getUTCMonth() !== Number(month) - 1 ||
+    instant.getUTCDate() !== Number(day)
+  ) {
+    return null;
+  }
   return instant;
 }
 

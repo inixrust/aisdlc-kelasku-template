@@ -172,4 +172,27 @@ describe('seed:demo (B-2(c))', () => {
       db.close();
     }
   }, 60_000);
+
+  it('AC-9 demo class session dates follow the Clock today exactly (KELASKU_FAKE_NOW = 2026-11-09)', async () => {
+    const dbPath = dir.file('seed-class-dates', 'kelasku.db');
+    const env = { DATABASE_PATH: dbPath, SEED_ADMIN_EMAIL: 'seed@lembaga.id', SEED_ADMIN_PASSWORD: 'password-seed-1' };
+    expect((await runScript('seed:demo', { env })).code).toBe(0);
+
+    const db = createDb(dbPath);
+    try {
+      const rows = db
+        .prepare(
+          `SELECT c.title AS title, group_concat(s.session_date, ',') AS dates
+           FROM classes c JOIN (SELECT class_id, session_date FROM class_sessions ORDER BY session_date) s ON s.class_id = c.id
+           GROUP BY c.id ORDER BY c.id`,
+        )
+        .all() as { title: string; dates: string }[];
+      expect(rows).toEqual([
+        { title: 'Demo: Excel untuk Laporan Keuangan', dates: '2026-11-02,2026-11-09,2026-11-16' },
+        { title: 'Demo: Public Speaking untuk Pemula', dates: '2026-11-16,2026-11-23,2026-11-30' },
+      ]);
+    } finally {
+      db.close();
+    }
+  }, 60_000);
 });

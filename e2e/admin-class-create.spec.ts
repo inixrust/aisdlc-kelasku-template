@@ -159,4 +159,57 @@ test.describe('Buat kelas dan bagikan tautan (FR2, FR6, UJ-1)', () => {
       ).resolves.toBeUndefined();
     },
   );
+
+  test(
+    '[P2] AC-5 FR2: an empty date row is caught on submit in the browser, and a class without dates shows the list error near "Tambah tanggal"',
+    { tag: '@P2' },
+    async ({ page, adminLogin, uid, expectNoA11yViolations }) => {
+      await expect(
+        (async () => {
+          await adminLogin();
+          await page.goto('/admin/kelas/baru');
+          let posts = 0;
+          page.on('request', (request) => {
+            if (request.method() === 'POST' && request.url().endsWith('/api/admin/classes')) posts += 1;
+          });
+
+          await titleField(page).fill(`Kelas tanpa tanggal ${uid}`);
+          await quotaField(page).fill('20');
+          await page.getByRole('button', { name: 'Tambah tanggal' }).click();
+
+          // Validasi klien saat submit: baris kosong ditandai tanpa request ke server.
+          await page.getByRole('button', { name: 'Simpan kelas' }).click();
+          await expect(sessionDateField(page, 1)).toHaveAttribute('aria-invalid', 'true');
+          await expect(page.getByRole('alert')).toBeFocused();
+          expect(posts).toBe(0);
+
+          // Hapus satu-satunya baris → error tingkat daftar dari server.
+          await page.getByRole('button', { name: 'Hapus tanggal sesi 1' }).click();
+          await page.getByRole('button', { name: 'Simpan kelas' }).click();
+
+          const addDate = page.getByRole('button', { name: 'Tambah tanggal' });
+          await expect(addDate).toHaveAccessibleDescription(/\S/);
+          const message = (await page.locator('#class-session-dates-error').textContent()) ?? '';
+          expect(message.trim()).not.toBe('');
+          const summary = page.getByRole('alert');
+          await expect(summary.getByRole('link', { name: message.trim() })).toBeVisible();
+          await expect(summary).toBeFocused();
+          expect(posts).toBe(1);
+          await expect(titleField(page)).toHaveValue(`Kelas tanpa tanggal ${uid}`);
+
+          await expectNoA11yViolations();
+        })(),
+      ).resolves.toBeUndefined();
+    },
+  );
+
+  test('[P2] AC-8 FR5: an unknown class id shows "Kelas tidak ditemukan" with a link back to Kelas', { tag: '@P2' }, async ({ page, adminLogin, expectNoA11yViolations }) => {
+    await adminLogin();
+    await page.goto('/admin/kelas/987654');
+
+    await expect(page.getByText('Kelas tidak ditemukan.')).toBeVisible();
+    const back = page.getByRole('link', { name: 'Kembali ke daftar kelas' });
+    await expect(back).toHaveAttribute('href', '/admin/kelas');
+    await expectNoA11yViolations();
+  });
 });

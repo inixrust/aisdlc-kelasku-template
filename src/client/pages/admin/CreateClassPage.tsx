@@ -17,7 +17,8 @@ const IDS = {
   sessionDatesError: 'class-session-dates-error',
 } as const;
 
-const dateFieldId = (key: number): string => `class-session-date-${key}`;
+const DATE_FIELD_PREFIX = 'class-session-date-';
+const dateFieldId = (key: number): string => `${DATE_FIELD_PREFIX}${key}`;
 
 interface DateRow {
   /** Kunci stabil baris (bukan indeks), agar React tidak menukar isian saat baris dihapus. */
@@ -51,6 +52,10 @@ export function CreateClassPage() {
 
   const removeRow = (key: number) => {
     setRows((current) => current.filter((row) => row.key !== key));
+    // Error baris berkunci indeks (`sessionDates.<n>`); setelah baris dihapus indeksnya tidak lagi cocok,
+    // jadi semua error per baris dan entri ringkasannya dibuang.
+    setFields((current) => Object.fromEntries(Object.entries(current).filter(([field]) => !/^sessionDates\.\d+$/.test(field))));
+    setSummary((current) => current.filter((item) => !item.fieldId.startsWith(DATE_FIELD_PREFIX)));
     requestAnimationFrame(() => document.getElementById(IDS.addDate)?.focus());
   };
 

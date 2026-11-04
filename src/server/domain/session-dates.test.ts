@@ -1,5 +1,5 @@
 /**
- * ATDD fase merah Story 1.6 — AC-1 (1.6-UNIT-001, P1). Risiko: R-022, R-005, R-010.
+ * ATDD Story 1.6 (fase hijau) — AC-1 (1.6-UNIT-001, P1). Risiko: R-022, R-005, R-010.
  *
  * Fase hijau: diaktifkan oleh Story 1.6 (impor statis, tanpa `.skip`).
  *

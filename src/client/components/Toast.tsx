@@ -8,7 +8,8 @@ export const TOAST_DURATION_MS = 5000;
  * Error tidak pernah memakai toast.
  */
 export function Toast({ message }: { message: string | null }) {
-  const [visible, setVisible] = useState<string | null>(message);
+  // Mulai kosong: live region harus sudah ada sebelum pesan masuk agar pembaca layar mengumumkannya.
+  const [visible, setVisible] = useState<string | null>(null);
 
   useEffect(() => {
     setVisible(message);

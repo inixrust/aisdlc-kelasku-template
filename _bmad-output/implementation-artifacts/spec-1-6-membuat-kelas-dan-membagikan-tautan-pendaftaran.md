@@ -2,7 +2,7 @@
 title: 'Story 1.6: Membuat kelas dan membagikan tautan pendaftaran'
 type: 'feature'
 created: '2026-11-04'
-status: 'in-progress'
+status: 'done'
 baseline_commit: 'c5f9c5439a20000f5e82a5b079b9fc605b117551'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -63,16 +63,16 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/server/data/migrations/002_classes.sql` -- tabel `classes`, `class_sessions` sesuai AC.
-- [ ] `src/shared/format.ts` (+ tz test) -- `formatShortDate` "16 Nov 2026".
-- [ ] `src/server/domain/session-dates.ts`, `class-status.ts` -- fungsi murni; aktifkan test domain.
-- [ ] `src/shared/{schemas,dto,errors,glossary}.ts` -- `createClassRequestSchema`, DTO, `class_not_found`, `ELIGIBILITY_LABELS`.
-- [ ] `src/server/data/classes-repo.ts`, `src/server/services/classes.ts`, `services/index.ts` -- use-case `createClass`, `getClass`, `hasClassWithTitle`.
-- [ ] `src/server/http/routes/admin-classes.ts`, `admin-plugin.ts` -- rute; aktifkan `admin-classes.test.ts`.
-- [ ] `scripts/seed-demo.ts` -- kelas demo; aktifkan AC-9.
-- [ ] `src/client/components/{Badge,Toast,CopyLinkButton}.tsx`, `icons.tsx`, `components.css` -- aktifkan `Badge.test.ts`.
-- [ ] `src/client/api/classes.ts`, `pages/admin/{CreateClassPage,ClassPage,ClassesPage}.tsx`, `router.tsx` -- halaman; aktifkan e2e.
-- [ ] `test/README.md` -- catat spec e2e baru.
+- [x] `src/server/data/migrations/002_classes.sql` -- tabel `classes`, `class_sessions` sesuai AC.
+- [x] `src/shared/format.ts` (+ tz test) -- `formatShortDate` "16 Nov 2026".
+- [x] `src/server/domain/session-dates.ts`, `class-status.ts` -- fungsi murni; aktifkan test domain.
+- [x] `src/shared/{schemas,dto,errors,glossary}.ts` -- `createClassRequestSchema`, DTO, `class_not_found`, `ELIGIBILITY_LABELS`.
+- [x] `src/server/data/classes-repo.ts`, `src/server/services/classes.ts`, `services/index.ts` -- use-case `createClass`, `getClass`, `hasClassWithTitle`.
+- [x] `src/server/http/routes/admin-classes.ts`, `admin-plugin.ts` -- rute; aktifkan `admin-classes.test.ts`.
+- [x] `scripts/seed-demo.ts` -- kelas demo; aktifkan AC-9.
+- [x] `src/client/components/{Badge,Toast,CopyLinkButton}.tsx`, `icons.tsx`, `components.css` -- aktifkan `Badge.test.ts`.
+- [x] `src/client/api/classes.ts`, `pages/admin/{CreateClassPage,ClassPage,ClassesPage}.tsx`, `router.tsx` -- halaman; aktifkan e2e.
+- [x] `test/README.md` -- catat spec e2e baru.
 
 **Acceptance Criteria:**
 - Given semua test ATDD story 1.6, when `npm test` dan `npm run test:e2e`, then semuanya aktif (tanpa `skip`) dan lulus di kedua project Playwright, termasuk axe.
@@ -80,9 +80,36 @@ context:
 
 ## Implementation Notes
 
+- Implementasi awal ada di commit WIP `17eb855`; sesi lanjutan memverifikasi seluruhnya terhadap spec, lalu menambah: toast "Kelas tersimpan" dibaca sekali dan state riwayat dikosongkan (muat ulang tidak menampilkan toast lagi), catatan `test/README.md`, dan dua entri `deferred-work.md` (R-022 spine; cabang sekunder ATDD).
+- `auth.test.ts` dan `services.test.ts` disesuaikan untuk rute/use-case baru (enumerasi rute admin, kunci `createServices`); bukan test ATDD story ini.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Sumber | Temuan | Verdict | Rute | Bukti |
+|---|--------|--------|---------|------|-------|
+| 1 | blind, edge | `isCalendarDate` meloloskan tahun 0–99 (`Date.UTC` → 19xx) | low | patch | `calendarNoon` hanya membandingkan hari/bulan; `['0026-11-09','2026-11-16']` lolos `validateSessionDates` lalu tampil 1926. Koreksi langsung (cek tahun). |
+| 2 | blind, edge | `sessionDates`/`quota` tanpa batas atas | low | reject | Rute khusus admin terautentikasi (±5 admin); perbaikan menambah parameter dan pesan baru; jarang terjadi dalam pemakaian wajar. |
+| 3 | blind, edge | Error baris tanggal pindah ke baris lain setelah Hapus | medium | patch | `fields` berindeks posisi (`sessionDates.<i>`), baris di-render per `key`; `removeRow` tidak membersihkan error/ringkasan. |
+| 4 | blind | Toast `role="status"` terpasang sudah berisi pesan → bisa tak diumumkan | low | patch | `Toast` diinisialisasi `useState(message)` dan dirender pada render pertama `ClassPage`; koreksi langsung: inisialisasi `null`. |
+| 5 | blind | `navigate(..., state:null)` membuang `search`/`hash` | low | reject | Rute `/admin/kelas/:id` tidak memakai query/hash. |
+| 6 | blind, edge | Klik ulang saat "Tautan disalin" tidak me-restart timer 3 detik | low | reject | Label tetap benar (tersalin), hanya kembali lebih awal; perbaikan menambah state. |
+| 7 | blind | Pesan gagal salin tak pernah hilang; live region membungkus tombol | false | reject | Pesan gagal adalah instruksi salin manual yang harus tetap terlihat; live region pembungkus tombol adalah keputusan spec (Keputusan #6). |
+| 8 | blind | `seed:demo`: clock terpisah, cek judul di luar transaksi, `addDays` pakai `Date` | false | reject | Kedua clock dari `createClock()` dengan env yang sama; seed hanya jalan saat server mati (AGENTS.md); larangan `new Date()` hanya untuk `domain/`/`services/`. |
+| 9 | blind | Tautan bisa berisi `localhost` | low | reject | Admin membuka aplikasi lewat alamat server lokal yang sama dengan peserta (deployment satu server); di luar perubahan ini. |
+| 10 | blind | Header `session-dates.test.ts` masih "fase merah" | low | patch | Baris 2 berkas; koreksi komentar langsung. |
+| 11 | blind, edge | `auth.test.ts` jalur sesi valid kini hanya rute uji; ekspektasi 15 diubah | false | reject | Bukan test ATDD story ini; enumerasi 401 tetap mencakup rute produksi; rute produksi punya kontrak sendiri di `admin-classes.test.ts`. |
+| 12 | blind | `getClass` membaca kelas dan sesi tanpa snapshot | low | reject | Belum ada jalur ubah kelas (Story 1.11/1.12); risiko hipotetis. |
+| 13 | blind | Banyak jalur baru tanpa test | — | digabung | Diwakili temuan verification-gap #14–#21. |
+| 14 | vgap | Test seed tidak membedakan tanggal relatif Clock | gap | patch | Test baru: tanggal persis kelas demo terhadap 2026-11-09. |
+| 15 | vgap | Tanggal kalender tidak valid tak diuji lewat API | gap | patch | Test baru `2026-02-30` dan non-string → 400 `sessionDates.0`. |
+| 16 | vgap | Validasi klien dan error daftar tanggal di form tak diuji | gap | patch | E2E baru `[P2] AC-5`. |
+| 17 | vgap | `status` `finished` dari `GET :id` tak diuji | gap | patch | Test baru open/finished dengan clock berbeda. |
+| 18 | vgap | Halaman "Kelas tidak ditemukan" tak diuji | gap | patch | E2E baru `/admin/kelas/987654`. |
+| 19 | vgap | Jaminan `publicCode` tanpa digit diuji lemah | gap | patch | Test baru regex `/^[A-Za-z_-]{10}$/` atas beberapa kode. |
+| 20 | vgap | Fallback clipboard ditolak tak diuji | gap | defer | Jalur sekunder; simulasi penolakan clipboard berbeda per browser. |
+| 21 | vgap | Toast tidak muncul lagi setelah muat ulang tak diuji | gap | defer | Kosmetik; cukup `page.reload()` di AC-6 nanti. |
 
 ## Verification
 

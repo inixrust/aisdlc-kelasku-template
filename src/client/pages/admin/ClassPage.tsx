@@ -1,4 +1,5 @@
-import { Link, useLocation, useParams } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ERRORS } from '../../../shared/errors.js';
 import { formatSessionDate } from '../../../shared/format.js';
 import { getClass } from '../../api/classes';
@@ -27,7 +28,12 @@ const REGISTRATION_LINK_ID = 'registration-link';
 export function ClassPage() {
   const { id = '' } = useParams();
   const location = useLocation();
-  const toast = (location.state as ClassPageLocationState | null)?.toast ?? null;
+  const navigate = useNavigate();
+  // Toast dibaca sekali lalu state riwayat dikosongkan, agar muat ulang halaman tidak menampilkannya lagi.
+  const [toast] = useState(() => (location.state as ClassPageLocationState | null)?.toast ?? null);
+  useEffect(() => {
+    if (location.state !== null) void navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const resource = useResource((signal) => getClass(id, { signal }), [id]);
 
   if (resource.state === 'error' && resource.error.code === 'class_not_found') {

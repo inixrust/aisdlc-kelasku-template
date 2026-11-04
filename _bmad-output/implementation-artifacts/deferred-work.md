@@ -31,3 +31,19 @@
 - source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-5-halaman-masuk-admin-dan-kerangka-ui-bersama.md`
   summary: Uji jeda 300 ms "Memuat…" dan logika `useResource` (abaikan hasil basi, abort saat unmount, `retry`) secara langsung.
   evidence: Test e2e "Memuat…" menahan request tanpa batas sehingga tetap lulus bila `LOADING_DELAY_MS` = 0; Vitest berjalan di environment node tanpa jsdom, jadi hook belum bisa dirender tanpa memilih pendekatan component test.
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md`
+  summary: Perbarui ARCHITECTURE-SPINE lewat `bmad-architecture` (R-022): AD-6 batas Selesai menjadi `max(session_date) <= today`, dan AD-19 menjadi "minimal satu tanggal sesi setelah today".
+  evidence: Story 1.6 mengikuti epics/PRD revisi (`classStatus` memakai `<=`, `validateSessionDates` mewajibkan tanggal > today), sedangkan spine AD-6 masih `<` dan AD-19 masih "≥ today". AGENTS.md menyatakan AD mengikat, sehingga agen berikutnya bisa mengikuti spine yang usang.
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md`
+  summary: Cabang sekunder ATDD 1.6 untuk `bmad-testarch-automate`: test skema migrasi 002 (CHECK kuota/GLOB/UNIQUE), rollback satu transaksi createClass, keunikan `publicCode`, tombol Hapus baris tanggal, badge Selesai di halaman kelas, clipboard ditolak, halaman `/admin/kelas/987654` (pesan Indonesia), dan toast tidak muncul lagi setelah muat ulang.
+  evidence: Checklist ATDD §"Cabang sekunder" mencantumkannya sebagai di luar leaf merah; perilakunya sudah diimplementasikan tetapi belum diuji otomatis.
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md`
+  summary: Uji e2e fallback "Salin tautan" saat clipboard ditolak (teks URL terpilih + pesan "Tautan belum tersalin…").
+  evidence: Review verification-gap: e2e AC-7 hanya memberi izin clipboard; menghapus cabang `catch` di `CopyLinkButton` tidak menggagalkan test apa pun.
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md`
+  summary: Tambahkan `page.reload()` setelah simpan di e2e AC-6 untuk memastikan toast "Kelas tersimpan" tidak muncul lagi.
+  evidence: Review verification-gap: menghapus efek `navigate(..., { replace: true, state: null })` di `ClassPage` tidak menggagalkan test apa pun.

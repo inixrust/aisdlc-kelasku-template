@@ -17,7 +17,7 @@ describe('format (AD-10)', () => {
 
   it('recognises only real YYYY-MM-DD calendar dates', () => {
     expect(isCalendarDate('2028-02-29')).toBe(true);
-    for (const value of ['2026-02-30', '2026-13-01', '9-11-2026', '2026-11-09T00:00:00Z', '']) {
+    for (const value of ['2026-02-30', '2026-13-01', '9-11-2026', '2026-11-09T00:00:00Z', '', '0026-11-09']) {
       expect(isCalendarDate(value), value).toBe(false);
     }
   });
