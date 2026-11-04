@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-03-2026 02:58
-last_updated: 11-04-2026 21:00
+last_updated: 11-04-2026 20:49
 project: aisdlc-kelasku
 project_key: NOKEY
 tracking_system: file-system
@@ -48,7 +48,7 @@ development_status:
   1-10-daftar-pendaftaran-di-halaman-kelas-admin: backlog
   1-11-api-ubah-kelas-dengan-batas-kuota-r7-dan-promosi-saat-kuota: backlog
   1-12-halaman-ubah-kelas: backlog
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   epic-2: backlog
   2-1-api-pembatalan-idempoten-dengan-promosi-otomatis-r4: backlog
@@ -75,3 +75,67 @@ development_status:
   4-6-kesiapan-rilis-bukti-kinerja-dan-pencadangan: backlog
   4-7-penyajian-produksi-lewat-https: backlog
   epic-4-retrospective: optional
+action_items:
+  - id: "epic-1-retro-item-1-perbarui-architecture-spine-ad-6-dan-ad"
+    epic: 1
+    action: "Perbarui ARCHITECTURE-SPINE AD-6 (<=) dan AD-19 (tanggal > today) lewat
+      bmad-architecture/bmad-correct-course (S1)"
+    owner: "Architect (Winston) / Rustan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-2-refresh-agents-md-lewat-bmad-project-con"
+    epic: 1
+    action: "Refresh AGENTS.md lewat bmad-project-context: hapus Belum ada kode dan
+      TODO pra-scaffolding (S2)"
+    owner: "Rustan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-3-putuskan-status-akhir-story-1-1-1-7-dan"
+    epic: 1
+    action: "Putuskan status akhir Story 1.1-1.7 dan sinkronkan sprint-status.yaml
+      dengan frontmatter spec (S3)"
+    owner: "Rustan (SM)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-4-putuskan-risiko-alreadyactive-membuka-re"
+    epic: 1
+    action: "Putuskan risiko alreadyActive membuka registrationRef sebelum Story 1.11/2.1:
+      terima risiko atau ubah AD-5/AD-10 (L1)"
+    owner: "PM (John) + Architect (Winston)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-5-rapikan-deferred-work-md-tandai-entri-in"
+    epic: 1
+    action: "Rapikan deferred-work.md: tandai entri internal_error selesai, beri pemilik
+      dan story target tiap entri (L2, PR3)"
+    owner: "Dev (Amelia)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-6-catat-keputusan-potongan-cakupan-hari-ke"
+    epic: 1
+    action: "Catat keputusan potongan cakupan hari ke-3 (SHOULD/potongan kedua) di
+      memlog proyek (S5)"
+    owner: "PM (John) / Rustan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-7-selesaikan-story-1-8-1-12-termasuk-bukti"
+    epic: 1
+    action: "Selesaikan Story 1.8-1.12 termasuk bukti konkurensi R7 dan smoke E2E
+      UJ-1+UJ-2, lalu jalankan ulang trace gate epik (S4)"
+    owner: "Dev (Amelia) + TEA (Murat)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-8-pass-bmad-testarch-automate-untuk-celah"
+    epic: 1
+    action: "Pass bmad-testarch-automate untuk celah verifikasi 1.4-1.6 di deferred-work.md
+      (L3)"
+    owner: "TEA (Murat)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
+  - id: "epic-1-retro-item-9-story-1-9-ekstrak-helper-baca-kelas-bers"
+    epic: 1
+    action: "Story 1.9: ekstrak helper baca kelas bersama (D1); Story 1.11: ganti
+      registeredCount 0 di assertClassOpen dengan isFinished (P1)"
+    owner: "Dev (Amelia)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-11-04.md"
