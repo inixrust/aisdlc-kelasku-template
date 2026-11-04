@@ -17,6 +17,10 @@ export function findClassById(db: Db, id: number): ClassRow | undefined {
   return db.prepare(`${SELECT_CLASS} WHERE id = ?`).get(id) as ClassRow | undefined;
 }
 
+export function findClassByPublicCode(db: Db, publicCode: string): ClassRow | undefined {
+  return db.prepare(`${SELECT_CLASS} WHERE public_code = ?`).get(publicCode) as ClassRow | undefined;
+}
+
 export function publicCodeExists(db: Db, publicCode: string): boolean {
   return db.prepare('SELECT 1 FROM classes WHERE public_code = ?').get(publicCode) !== undefined;
 }

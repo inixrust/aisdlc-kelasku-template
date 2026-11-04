@@ -107,7 +107,7 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 
 - Kelas seed hanya dibaca. Spec e2e membuat kelasnya sendiri lewat formulir atau `page.request.post('/api/admin/classes')` dengan judul ber-`uid`.
 
-## Pendaftaran berkuota (story 1.7, fase merah ATDD)
+## Pendaftaran berkuota (story 1.7)
 
 | Berkas | Isi |
 | --- | --- |
@@ -116,7 +116,9 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | `src/server/services/registrations.concurrency.test.ts` | P0 R1/R2: worker ×50, HTTP `startTestServer()` ×50, dua mutation check |
 | `src/server/services/registrations.test.ts`, `src/server/http/public-registrations.test.ts`, `src/server/http/registrations.tz.test.ts`, `src/server/data/registrations-schema.test.ts`, `src/server/domain/registration-rules.test.ts` | R3, rute publik, batas 00.00 WIB, skema `registrations`, aturan domain |
 
-- Test R1–R3 fase merah memakai `it.fails`, bukan `.skip`. Test itu tetap dijalankan dan otomatis merah begitu perilakunya benar; saat itu ganti ke `it`. Rincian dan asumsi kontrak ada di `_bmad-output/test-artifacts/atdd-checklist-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md`.
+- Semua test story 1.7 aktif (`it`). Pola fase merah untuk test R1–R7 berikutnya: `it.fails`, bukan `.skip`; test itu tetap dijalankan dan otomatis merah begitu perilakunya benar, lalu diganti ke `it`. Rincian dan asumsi kontrak ada di `_bmad-output/test-artifacts/atdd-checklist-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md`.
+- `seed:demo` menambah kelas B-2b (Penuh tanpa antrean, Penuh + 3 Daftar tunggu, Selesai dengan Terdaftar + Daftar tunggu) lewat use-case; kelas Selesai dibuat dan diisi dengan clock 10 hari lalu.
+- Durasi `registrations.concurrency.test.ts` ±14 detik di mesin dev (5 skenario ×50).
 
 ## Helper DB, konkurensi, dan server (story 1.3)
 

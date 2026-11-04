@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-03-2026 02:58
-last_updated: 11-04-2026 08:10
+last_updated: 11-04-2026 15:00
 project: aisdlc-kelasku
 project_key: NOKEY
 tracking_system: file-system
@@ -42,7 +42,7 @@ development_status:
   1-4-api-masuk-dan-keluar-admin: review
   1-5-halaman-masuk-admin-dan-kerangka-ui-bersama: review
   1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran: review
-  1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo-r1-r2-r3: backlog
+  1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo-r1-r2-r3: in-progress
   1-8-halaman-pendaftaran-peserta-yang-ramah-ponsel: backlog
   1-9-tabel-kelas-admin: backlog
   1-10-daftar-pendaftaran-di-halaman-kelas-admin: backlog

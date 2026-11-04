@@ -1,5 +1,5 @@
 /**
- * ATDD fase merah Story 1.7 — R3 di level use-case (berkas SQLite sementara nyata).
+ * ATDD Story 1.7 — R3 di level use-case (berkas SQLite sementara nyata).
  * - AC-11 (1.7-INT-005, P1-013): pendaftar baru masuk ekor antrean selama antrean tidak kosong, walau ada kursi.
  * - AC-12 (1.7-INT-006, P1-014): FIFO menurut waktu daftar; `created_at` identik (clock beku) → `id` penentu.
  * Risiko: R-004.
@@ -8,7 +8,7 @@
  * Epik 2), jadi AC-11 membatalkan satu baris lewat SQL mentah sebagai fixture state tak sah (test-design
  * §Prasyarat). Ini satu-satunya tulis langsung ke `registrations` di luar `registrations-repo.ts`, dan hanya di test.
  *
- * FASE MERAH: test R3 tidak boleh `.skip`, jadi `it.fails`. Saat use-case benar, ganti `it.fails` → `it`.
+ * Fase hijau: diaktifkan oleh Story 1.7 (`it.fails` → `it`).
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { givenClass, type RegistrationResult, registrationsOf, statusCounts } from '../../../test/helpers/registrations.js';
@@ -28,7 +28,7 @@ function person(label: string): { name: string; email: string } {
 }
 
 describe('R3: waitlist order (FR10, AD-5, AD-15)', () => {
-  it.fails('[P1] AC-11 R3: a new registration is waitlisted while the waitlist is non-empty', async () => {
+  it('[P1] AC-11 R3: a new registration is waitlisted while the waitlist is non-empty', async () => {
     const cls = givenClass(testDb.db, { quota: 2 });
     const [a, b, c, d] = [person('a'), person('b'), person('c'), person('d')];
     await registrationsOf(testDb.services).register(cls.publicCode, a);
@@ -57,7 +57,7 @@ describe('R3: waitlist order (FR10, AD-5, AD-15)', () => {
     expect(tail).toMatchObject({ status: 'waitlisted', waitlistPosition: 2, alreadyActive: false });
   });
 
-  it.fails('[P1] AC-12 R3: waitlist is FIFO by registration time, id breaks ties', async () => {
+  it('[P1] AC-12 R3: waitlist is FIFO by registration time, id breaks ties', async () => {
     const cls = givenClass(testDb.db, { quota: 1 });
     const [p1, p2, p3, p4] = [person('p1'), person('p2'), person('p3'), person('p4')];
     const people = [p1, p2, p3, p4];

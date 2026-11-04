@@ -184,9 +184,11 @@ describe('seed:demo (B-2(c))', () => {
         .prepare(
           `SELECT c.title AS title, group_concat(s.session_date, ',') AS dates
            FROM classes c JOIN (SELECT class_id, session_date FROM class_sessions ORDER BY session_date) s ON s.class_id = c.id
+           WHERE c.title IN (?, ?)
            GROUP BY c.id ORDER BY c.id`,
         )
-        .all() as { title: string; dates: string }[];
+        // Disaring ke dua kelas demo Story 1.6; Story 1.7 menambah kelas B-2b (AC-15).
+        .all('Demo: Excel untuk Laporan Keuangan', 'Demo: Public Speaking untuk Pemula') as { title: string; dates: string }[];
       expect(rows).toEqual([
         { title: 'Demo: Excel untuk Laporan Keuangan', dates: '2026-11-02,2026-11-09,2026-11-16' },
         { title: 'Demo: Public Speaking untuk Pemula', dates: '2026-11-16,2026-11-23,2026-11-30' },
@@ -196,10 +198,8 @@ describe('seed:demo (B-2(c))', () => {
     }
   }, 60_000);
 
-  // ATDD Story 1.7 — AC-15 (1.7-INT-009, P1; B-2b, prasyarat E2E 1.8/1.9). Risiko: R-016. FASE MERAH.
-  // Saat aktivasi: hapus `.skip`. Test AC-9 di atas (`toEqual` dua kelas demo) perlu disaring per judul
-  // karena seed kini menambah tiga kelas lagi (lihat checklist ATDD 1.7).
-  it.skip('[P1] AC-15 seeds a full class without waitlist, a full class with 3 waitlisted, and a finished class with registered + waitlisted, relative to the Clock today, idempotently', async () => {
+  // ATDD Story 1.7 — AC-15 (1.7-INT-009, P1; B-2b, prasyarat E2E 1.8/1.9). Risiko: R-016. Fase hijau.
+  it('[P1] AC-15 seeds a full class without waitlist, a full class with 3 waitlisted, and a finished class with registered + waitlisted, relative to the Clock today, idempotently', async () => {
     const dbPath = dir.file('seed-registrations', 'kelasku.db');
     const env = { DATABASE_PATH: dbPath, SEED_ADMIN_EMAIL: 'seed@lembaga.id', SEED_ADMIN_PASSWORD: 'password-seed-1' };
     const today = '2026-11-09'; // KELASKU_FAKE_NOW runScript

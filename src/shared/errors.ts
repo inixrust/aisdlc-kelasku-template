@@ -10,6 +10,7 @@ export const ERRORS = {
   invalid_credentials: { httpStatus: 401, message: 'Email atau password salah' },
   not_found: { httpStatus: 404, message: 'Halaman atau data tidak ditemukan.' },
   class_not_found: { httpStatus: 404, message: 'Kelas tidak ditemukan.' },
+  registration_closed: { httpStatus: 409, message: 'Pendaftaran kelas ini sudah ditutup' },
   unsupported_media_type: { httpStatus: 415, message: 'Format permintaan tidak didukung.' },
   internal_error: { httpStatus: 500, message: 'Terjadi kesalahan di server. Coba lagi.' },
   unexpected_response: { httpStatus: 502, message: 'Server memberi jawaban yang tidak terduga. Coba lagi.' },

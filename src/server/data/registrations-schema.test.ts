@@ -1,9 +1,9 @@
 /**
- * ATDD fase merah Story 1.7 — AC-1 (1.7-INT-010, P2 di test design; satu leaf karena setiap AC wajib punya
+ * ATDD Story 1.7 — AC-1 (1.7-INT-010, P2 di test design; satu leaf karena setiap AC wajib punya
  * scaffold). Risiko: R-015, R-019. Skema `registrations` (AD-5, AD-10, AD-15, AD-17) lewat SQL mentah,
  * ditambah pemeriksaan statis penulis tunggal (AD-17).
  *
- * Saat aktivasi: hapus `.skip`. Cabang tambahan (fitness test HP-3 permanen) ada di checklist ATDD 1.7.
+ * Fase hijau: diaktifkan oleh Story 1.7. Cabang tambahan (fitness test HP-3 permanen) ada di checklist ATDD 1.7.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -67,7 +67,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('registrations schema (AD-5, AD-10, AD-15, AD-17)', () => {
-  it.skip('[P2] AC-1 AD-17: registrations has the agreed columns, CHECKs and indexes, no time DEFAULT, and only registrations-repo.ts writes it', () => {
+  it('[P2] AC-1 AD-17: registrations has the agreed columns, CHECKs and indexes, no time DEFAULT, and only registrations-repo.ts writes it', () => {
     const columns = testDb.db.prepare("SELECT name, dflt_value AS dflt FROM pragma_table_info('registrations')").all() as {
       name: string;
       dflt: string | null;

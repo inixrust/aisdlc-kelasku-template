@@ -1,54 +1,32 @@
 /**
- * ATDD fase merah Story 1.7 — AC-2 (1.7-UNIT-001, P1-012). Risiko: R-001, R-004, R-025.
+ * ATDD Story 1.7 — AC-2 (1.7-UNIT-001, P1-012). Risiko: R-001, R-004, R-025.
  * Fungsi domain murni (AD-6): `classStatus` diperluas dengan Penuh, keputusan pendaftaran, dan posisi antrean.
  *
- * Kontrak yang diasumsikan (checklist ATDD 1.7, asumsi A-1):
+ * Kontrak (checklist ATDD 1.7, asumsi A-1):
  * - `classStatus({ sessionDates, today, quota, registeredCount })` di `./class-status.ts`.
  * - `./registration-rules.ts` mengekspor `decideRegistration({ registeredCount, quota, waitlistLength })`
  *   → `'registered' | 'waitlisted'` dan `waitlistPosition(waitlistIds, registrationId)` → posisi 1-based.
- * `registration-rules.ts` belum ada; impor dinamis agar typecheck hijau. `classStatus` di-cast karena
- * parameternya belum punya `quota`/`registeredCount`. Saat aktivasi: impor statis, buang cast, `it.fails` → `it`.
  *
- * FASE MERAH: aturan R1/R3 tidak boleh `.skip`, jadi `it.fails` (lihat registrations.concurrency.test.ts).
+ * Fase hijau: diaktifkan oleh Story 1.7 (impor statis, tanpa cast, `it.fails` → `it`).
  */
 import { describe, expect, it } from 'vitest';
-import type { ClassStatus, RegistrationStatus } from '../../shared/glossary.js';
+import type { RegistrationStatus } from '../../shared/glossary.js';
 import { classStatus } from './class-status.js';
-
-interface ClassStatusInput {
-  sessionDates: readonly string[];
-  today: string;
-  quota: number;
-  registeredCount: number;
-}
-
-interface RegistrationRules {
-  decideRegistration(input: { registeredCount: number; quota: number; waitlistLength: number }): RegistrationStatus;
-  waitlistPosition(waitlistIds: readonly number[], registrationId: number): number;
-}
-
-const REGISTRATION_RULES_MODULE = './registration-rules.js';
-
-async function loadRegistrationRules(): Promise<RegistrationRules> {
-  return (await import(/* @vite-ignore */ REGISTRATION_RULES_MODULE)) as RegistrationRules;
-}
-
-const classStatusWithQuota = classStatus as unknown as (input: ClassStatusInput) => ClassStatus;
+import { decideRegistration, waitlistPosition } from './registration-rules.js';
 
 const TODAY = '2026-11-09';
 const UPCOMING = ['2026-11-16', '2026-11-23'];
 
 describe('registration rules (R1, R3, FR8, FR10, AD-6)', () => {
-  it.fails('[P1] AC-2 R1 R3: class status adds Penuh, registration is Terdaftar only with a free seat and an empty waitlist, waitlist position is 1-based by ascending id', async () => {
+  it('[P1] AC-2 R1 R3: class status adds Penuh, registration is Terdaftar only with a free seat and an empty waitlist, waitlist position is 1-based by ascending id', () => {
     // Kriteria inti: Penuh bila Dibuka dan Terdaftar = kuota.
-    expect(classStatusWithQuota({ sessionDates: UPCOMING, today: TODAY, quota: 5, registeredCount: 5 })).toBe('full');
+    expect(classStatus({ sessionDates: UPCOMING, today: TODAY, quota: 5, registeredCount: 5 })).toBe('full');
 
-    expect(classStatusWithQuota({ sessionDates: UPCOMING, today: TODAY, quota: 5, registeredCount: 4 })).toBe('open');
+    expect(classStatus({ sessionDates: UPCOMING, today: TODAY, quota: 5, registeredCount: 4 })).toBe('open');
     // Selesai menang atas Penuh; sepanjang tanggal sesi terakhir sudah Selesai (`<=`).
-    expect(classStatusWithQuota({ sessionDates: ['2026-11-02', TODAY], today: TODAY, quota: 5, registeredCount: 5 })).toBe('finished');
-    expect(classStatusWithQuota({ sessionDates: ['2026-11-02', TODAY], today: TODAY, quota: 5, registeredCount: 0 })).toBe('finished');
+    expect(classStatus({ sessionDates: ['2026-11-02', TODAY], today: TODAY, quota: 5, registeredCount: 5 })).toBe('finished');
+    expect(classStatus({ sessionDates: ['2026-11-02', TODAY], today: TODAY, quota: 5, registeredCount: 0 })).toBe('finished');
 
-    const { decideRegistration, waitlistPosition } = await loadRegistrationRules();
     const cases: Array<[registeredCount: number, quota: number, waitlistLength: number, expected: RegistrationStatus]> = [
       [0, 5, 0, 'registered'],
       [4, 5, 0, 'registered'],

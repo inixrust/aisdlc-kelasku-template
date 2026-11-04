@@ -1,5 +1,5 @@
 /**
- * ATDD fase merah Story 1.7 — P0 konkurensi R1 dan R2 (test-design-epic-1 §P0).
+ * ATDD Story 1.7 — P0 konkurensi R1 dan R2 (test-design-epic-1 §P0).
  * - AC-5  (1.7-INT-001, P0-001): 20 pendaftaran serentak lewat worker → tepat 5 Terdaftar, 15 Daftar tunggu; ×50.
  * - AC-6  (1.7-API-001, A-11):   20 POST serentak lewat HTTP nyata `startTestServer()` → semua 200; ×50.
  * - AC-7  (1.7-INT-001 bagian mutation check): mutan non-atomik harus tertangkap ≥ 1× dalam 50 ulangan.
@@ -7,9 +7,8 @@
  * - AC-10 (1.7-INT-003 bagian mutation check): tanpa cek aktif di transaksi + tanpa unique index parsial → tertangkap.
  * Risiko: R-001, R-002, R-008, R-020, R-028.
  *
- * FASE MERAH: test R1–R7 tidak boleh `.skip` (test/README.md, test-design-epic-1 §Aturan scaffold), jadi
- * dipasang sebagai `it.fails`: dijalankan di setiap `npm test` dan suite tetap hijau selama perilakunya
- * belum ada. Begitu use-case benar, `it.fails` berubah MERAH. Saat itu ganti `it.fails` → `it`.
+ * Fase hijau: diaktifkan oleh Story 1.7 (`it.fails` → `it`). Mutation check (AC-7, AC-10) hijau berarti
+ * mutan non-atomik tertangkap.
  */
 import { afterAll, describe, expect, it } from 'vitest';
 import {
@@ -78,7 +77,7 @@ async function postRegistration(baseUrl: string, publicCode: string, input: { na
 }
 
 describe('R1: quota is never exceeded under concurrent registrations (FR8, AD-3, AD-5)', () => {
-  it.fails(
+  it(
     '[P0] AC-5 R1: 20 parallel registrations to a quota-5 class yield exactly 5 registered',
     async () => {
       await repeatConcurrent(CONCURRENCY_REPEATS, async () => {
@@ -106,7 +105,7 @@ describe('R1: quota is never exceeded under concurrent registrations (FR8, AD-3,
     SCENARIO_TIMEOUT_MS,
   );
 
-  it.fails(
+  it(
     '[P0] AC-6 R1: 20 concurrent HTTP registrations all succeed without 5xx and fill the quota exactly',
     async () => {
       const server = await startTestServer();
@@ -134,7 +133,7 @@ describe('R1: quota is never exceeded under concurrent registrations (FR8, AD-3,
     SCENARIO_TIMEOUT_MS,
   );
 
-  it.fails(
+  it(
     '[P0] AC-7 R1: mutation check — non-atomic quota check is caught by the concurrency test',
     async () => {
       let detectedAt: number | null = null;
@@ -164,7 +163,7 @@ describe('R1: quota is never exceeded under concurrent registrations (FR8, AD-3,
 });
 
 describe('R2: one active registration per email per class under concurrency (FR9, AD-5)', () => {
-  it.fails(
+  it(
     '[P0] AC-9 R2: concurrent duplicate registrations create one row',
     async () => {
       // Bagian 1 — worker_threads, koneksi terpisah.
@@ -211,7 +210,7 @@ describe('R2: one active registration per email per class under concurrency (FR9
     SCENARIO_TIMEOUT_MS,
   );
 
-  it.fails(
+  it(
     '[P0] AC-10 R2: mutation check — removing the in-transaction check and partial unique index is caught',
     async () => {
       let detectedAt: number | null = null;

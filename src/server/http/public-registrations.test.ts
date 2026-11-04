@@ -1,14 +1,13 @@
 /**
- * ATDD fase merah Story 1.7 — rute publik pendaftaran (`fastify.inject`).
+ * ATDD Story 1.7 — rute publik pendaftaran (`fastify.inject`).
  * - AC-3  (1.7-API-007 bagian kelas publik + 1.7-API-008, P1): `GET /api/public/classes/:code`.
  * - AC-4  (1.7-API-006 + 1.7-API-007, P1): `POST /api/public/classes/:code/registrations` → 200; 400; tanpa id internal; 1.000 ref.
  * - AC-8  (1.7-API-004, P1-016): R2 serial, email dinormalisasi sebelum cek aktif.
  * - AC-13 (1.7-API-005 bagian 409, P1-018): kelas Selesai → 409 `registration_closed`, tanpa baris.
  * Risiko: R-002, R-009, R-022, R-024.
  *
- * `registration_closed` belum ada di `src/shared/errors.ts`, jadi kode dan status 409 ditulis literal agar
- * typecheck hijau. Saat aktivasi: daftarkan kodenya lalu ganti dengan `getError('registration_closed')` (A-8).
- * FASE MERAH: AC-3/AC-4/AC-13 `it.skip`; AC-8 adalah test R2, jadi `it.fails` (test R1–R7 tidak boleh `.skip`).
+ * Fase hijau: diaktifkan oleh Story 1.7. `registration_closed` (409, "Pendaftaran kelas ini sudah ditutup")
+ * terdaftar di `src/shared/errors.ts`; test sengaja memakai nilai literal agar registri ikut teruji.
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -69,7 +68,7 @@ afterAll(async () => {
 });
 
 describe('GET /api/public/classes/:code (FR7, AD-6, AD-10)', () => {
-  it.skip('[P1] AC-3 FR7: a known code returns title, session dates, class status and today without internal id, quota or participant data', async () => {
+  it('[P1] AC-3 FR7: a known code returns title, session dates, class status and today without internal id, quota or participant data', async () => {
     const cls = givenClass(testDb.db, { quota: 1, sessionDates: ['2026-11-23', '2026-11-16'] });
     const response = await getPublicClass(cls.publicCode);
 
@@ -95,7 +94,7 @@ describe('GET /api/public/classes/:code (FR7, AD-6, AD-10)', () => {
 });
 
 describe('POST /api/public/classes/:code/registrations (FR7, FR8, FR10, AD-5, AD-10)', () => {
-  it.skip('[P1] AC-4 FR7: a valid registration is answered 200 with status and a random registrationRef, never internal ids; invalid input is 400 validation_error', async () => {
+  it('[P1] AC-4 FR7: a valid registration is answered 200 with status and a random registrationRef, never internal ids; invalid input is 400 validation_error', async () => {
     const cls = givenClass(testDb.db, { quota: 2 });
     const email = uniqueEmail('dimas');
     const response = await register(cls.publicCode, { name: 'Dimas Prasetyo', email: `  ${email.toUpperCase()} ` });
@@ -149,7 +148,7 @@ describe('POST /api/public/classes/:code/registrations (FR7, FR8, FR10, AD-5, AD
     expect(ascendingPairs).toBeLessThan(650);
   }, 60_000);
 
-  it.fails('[P1] AC-8 R2: email is normalized before the active-registration check', async () => {
+  it('[P1] AC-8 R2: email is normalized before the active-registration check', async () => {
     const full = givenClass(testDb.db, { quota: 1 });
     await register(full.publicCode, { name: 'Andi Pratama', email: uniqueEmail('andi') });
     await register(full.publicCode, { name: 'Budi Santoso', email: 'Budi@Mail.com ' });
@@ -172,7 +171,7 @@ describe('POST /api/public/classes/:code/registrations (FR7, FR8, FR10, AD-5, AD
     expect(statusCounts(testDb.db, open.id)).toEqual({ registered: 1, waitlisted: 0, cancelled: 0 });
   });
 
-  it.skip('[P1] AC-13 FR7: registering to a finished class is 409 registration_closed and creates no row', async () => {
+  it('[P1] AC-13 FR7: registering to a finished class is 409 registration_closed and creates no row', async () => {
     // Sesi terakhir 6 Nov; kini 9 Nov → Selesai.
     const finished = givenClass(testDb.db, { nowIso: PAST_NOW_ISO, sessionDates: ['2026-11-06'] });
     const response = await register(finished.publicCode, { name: 'Eko Saputra', email: uniqueEmail('eko') });

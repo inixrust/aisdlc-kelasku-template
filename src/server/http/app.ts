@@ -4,6 +4,7 @@ import { AppError, type ErrorCode, getError, isAppError, toErrorEnvelope } from 
 import type { Services } from '../services/index.js';
 import { ADMIN_ROUTES, adminPlugin, type AdminRoutes } from './admin-plugin.js';
 import { authRoutes } from './routes/auth.js';
+import { publicRegistrationsRoutes } from './routes/public-registrations.js';
 import { registerSpaFallback } from './spa-fallback.js';
 
 export interface BuildAppOptions {
@@ -77,6 +78,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   await app.register(authRoutes, { prefix: '/api/auth', services: options.services, cookieSecure });
+  await app.register(publicRegistrationsRoutes, { prefix: '/api/public', services: options.services });
   await app.register(adminPlugin, {
     prefix: '/api/admin',
     services: options.services,

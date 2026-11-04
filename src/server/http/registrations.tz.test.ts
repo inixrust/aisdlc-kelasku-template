@@ -1,11 +1,10 @@
 /**
- * ATDD fase merah Story 1.7 — AC-14 (1.7-API-005 bagian batas waktu, P1-018). Risiko: R-005, R-022.
+ * ATDD Story 1.7 — AC-14 (1.7-API-005 bagian batas waktu, P1-018). Risiko: R-005, R-022.
  * Pendaftaran tutup pukul 00.00 WIB pada tanggal sesi terakhir (`max(session_date) <= today`, AD-6/AD-7).
  * Berkas `*.tz.test.ts`: dijalankan di zona proses UTC, Asia/Jakarta, dan Asia/Jayapura dengan ekspektasi sama.
  *
  * Setiap instan memakai app + services dengan clock beku sendiri di atas berkas DB yang sama.
- * `registration_closed` belum ada di registri, jadi 409 ditulis literal (lihat public-registrations.test.ts).
- * Saat aktivasi: hapus `.skip`.
+ * Fase hijau: diaktifkan oleh Story 1.7 (hapus `.skip`).
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -52,7 +51,7 @@ async function registerAt(nowIso: string): Promise<LightMyRequestResponse> {
 }
 
 describe('registration closing time (FR7, AD-7)', () => {
-  it.skip('[P1] AC-14 FR7: registration closes at 00.00 WIB on the last session date', async () => {
+  it('[P1] AC-14 FR7: registration closes at 00.00 WIB on the last session date', async () => {
     const atMidnight = await registerAt(MIDNIGHT_CLOSED);
 
     // Kriteria inti.

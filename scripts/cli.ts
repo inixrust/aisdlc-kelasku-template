@@ -6,15 +6,16 @@
 import { createClock } from '../src/server/clock.js';
 import { readDatabasePath } from '../src/server/config.js';
 import { createDb, migrate } from '../src/server/data/db.js';
-import { createServices, type Services } from '../src/server/services/index.js';
+import { createServices, type ServiceDeps, type Services } from '../src/server/services/index.js';
 import { isAppError } from '../src/shared/errors.js';
 
-export async function withServices<T>(fn: (services: Services) => Promise<T>): Promise<T> {
+/** `deps` = koneksi dan clock yang sama, untuk skrip yang perlu merakit services dengan clock lain (seed). */
+export async function withServices<T>(fn: (services: Services, deps: ServiceDeps) => Promise<T>): Promise<T> {
   const clock = createClock();
   const db = createDb(readDatabasePath(process.env.DATABASE_PATH));
   try {
     migrate(db, { now: () => clock.now() });
-    return await fn(createServices({ db, clock }));
+    return await fn(createServices({ db, clock }), { db, clock });
   } finally {
     db.close();
   }

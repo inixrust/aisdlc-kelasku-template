@@ -25,6 +25,7 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
 }
 
 export const ADMIN_PASSWORD_MIN_LENGTH = 8;
+export const PARTICIPANT_NAME_MAX_LENGTH = 100;
 export const CLASS_TITLE_MAX_LENGTH = 120;
 
 export const SCHEMA_MESSAGES = {
@@ -37,6 +38,8 @@ export const SCHEMA_MESSAGES = {
   quotaInvalid: 'Kuota harus bilangan bulat minimal 1.',
   sessionDatesRequired: 'Tambahkan minimal satu tanggal sesi.',
   sessionDateInvalid: 'Isi tanggal sesi yang valid atau hapus barisnya.',
+  nameRequired: 'Nama wajib diisi.',
+  nameTooLong: `Nama maksimal ${PARTICIPANT_NAME_MAX_LENGTH} karakter.`,
 } as const;
 
 const requiredEmail = z
@@ -53,9 +56,11 @@ export const loginRequestSchema = z.preprocess(
   }),
 );
 
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+$/;
+
 /** Kredensial akun admin untuk `admin:create` dan `seed:demo` (use-case `upsertAdmin`). */
 export const adminCredentialsSchema = z.object({
-  email: requiredEmail.regex(/^[^\s@]+@[^\s@]+$/, { error: SCHEMA_MESSAGES.emailInvalid }),
+  email: requiredEmail.regex(EMAIL_FORMAT, { error: SCHEMA_MESSAGES.emailInvalid }),
   password: z
     .string({ error: SCHEMA_MESSAGES.passwordRequired })
     .min(ADMIN_PASSWORD_MIN_LENGTH, { error: SCHEMA_MESSAGES.passwordTooShort }),
@@ -79,5 +84,21 @@ export const createClassRequestSchema = z.preprocess(
       { error: SCHEMA_MESSAGES.sessionDatesRequired },
     ),
     quota: z.number({ error: SCHEMA_MESSAGES.quotaInvalid }).int({ error: SCHEMA_MESSAGES.quotaInvalid }).min(1, { error: SCHEMA_MESSAGES.quotaInvalid }),
+  }),
+);
+
+/**
+ * `POST /api/public/classes/:code/registrations` (FR7). Nama di-trim 1–100 karakter; email di-trim dan
+ * berformat `x@y`. Normalisasi email (lowercase) dilakukan use-case lewat `normalizeEmail` (AD-5).
+ */
+export const registrationRequestSchema = z.preprocess(
+  asObject,
+  z.object({
+    name: z
+      .string({ error: SCHEMA_MESSAGES.nameRequired })
+      .trim()
+      .min(1, { error: SCHEMA_MESSAGES.nameRequired })
+      .max(PARTICIPANT_NAME_MAX_LENGTH, { error: SCHEMA_MESSAGES.nameTooLong }),
+    email: requiredEmail.regex(EMAIL_FORMAT, { error: SCHEMA_MESSAGES.emailInvalid }),
   }),
 );

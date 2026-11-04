@@ -14,11 +14,11 @@ const TODAY = '2026-11-09';
 describe('classStatus (FR4, AD-6)', () => {
   it('[P1] AC-2 FR4: a class is finished when max(session_date) <= today, including the whole last session date', () => {
     // Kriteria inti: sepanjang tanggal sesi terakhir kelas sudah Selesai.
-    expect(classStatus({ sessionDates: ['2026-11-02', TODAY], today: TODAY })).toBe('finished');
+    expect(classStatus({ sessionDates: ['2026-11-02', TODAY], today: TODAY, quota: 5, registeredCount: 0 })).toBe('finished');
 
-    expect(classStatus({ sessionDates: ['2026-11-02', '2026-11-05'], today: TODAY })).toBe('finished');
-    expect(classStatus({ sessionDates: [TODAY, '2026-11-10'], today: TODAY })).toBe('open');
+    expect(classStatus({ sessionDates: ['2026-11-02', '2026-11-05'], today: TODAY, quota: 5, registeredCount: 0 })).toBe('finished');
+    expect(classStatus({ sessionDates: [TODAY, '2026-11-10'], today: TODAY, quota: 5, registeredCount: 0 })).toBe('open');
     // Urutan masukan tidak menentukan: yang dipakai max(session_date).
-    expect(classStatus({ sessionDates: ['2026-11-16', '2026-11-02'], today: TODAY })).toBe('open');
+    expect(classStatus({ sessionDates: ['2026-11-16', '2026-11-02'], today: TODAY, quota: 5, registeredCount: 0 })).toBe('open');
   });
 });

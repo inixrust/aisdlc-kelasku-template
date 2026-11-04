@@ -9,6 +9,7 @@ import { createClassRequestSchema, fieldErrorsOf } from '../../shared/schemas.js
 import type { Clock } from '../clock.js';
 import * as classesRepo from '../data/classes-repo.js';
 import { type Db, withWriteTx } from '../data/db.js';
+import * as registrationsRepo from '../data/registrations-repo.js';
 import { classStatus } from '../domain/class-status.js';
 import { sortSessionDates, validateSessionDates } from '../domain/session-dates.js';
 
@@ -68,7 +69,8 @@ export function createClassesService(deps: { db: Db; clock: Clock }): ClassesSer
       const row = Number.isSafeInteger(id) && id > 0 ? classesRepo.findClassById(db, id) : undefined;
       if (row === undefined) throw new AppError('class_not_found');
       const sessionDates = classesRepo.listSessionDates(db, row.id);
-      return { ...row, sessionDates, today, status: classStatus({ sessionDates, today }) };
+      const registeredCount = registrationsRepo.countRegistered(db, row.id);
+      return { ...row, sessionDates, today, status: classStatus({ sessionDates, today, quota: row.quota, registeredCount }) };
     },
 
     hasClassWithTitle(title) {
