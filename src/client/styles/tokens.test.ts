@@ -177,6 +177,18 @@ function colorLiteralViolations(files: Array<{ path: string; content: string }>)
   return violations;
 }
 
+/** `var(--x)` di berkas klien yang `--x`-nya tidak didefinisikan di tokens.css (var() gagal diam-diam). */
+function undefinedVarReferences(files: Array<{ path: string; content: string }>, defined: ReadonlySet<string>): string[] {
+  const problems: string[] = [];
+  for (const file of files) {
+    if (/\.test\.tsx?$/.test(file.path)) continue;
+    for (const match of file.content.matchAll(/var\(\s*(--[\w-]+)/g)) {
+      if (!defined.has(match[1]!)) problems.push(`${file.path}: ${match[1]}`);
+    }
+  }
+  return problems;
+}
+
 function readClientFiles(): Array<{ path: string; content: string }> {
   const entries = readdirSync(path.join(ROOT, CLIENT_DIR), { recursive: true, withFileTypes: true });
   return entries
@@ -268,6 +280,29 @@ describe('AD-13 design tokens: DESIGN.md ↔ tokens.css', () => {
 
     const notCss = parseCustomProperties(SAMPLE_CSS.replace(':root {', ':root {\n  --button-primary-typography: 14px;'));
     expect(tokenMismatches(tokens, notCss)).toEqual(['nilai DESIGN.md bukan nilai CSS: --button-primary-typography']);
+  });
+});
+
+describe('AD-13 every var(--…) in src/client/** is defined in tokens.css', () => {
+  it('finds no reference to an undefined custom property', () => {
+    const defined = new Set(parseCustomProperties(readFileSync(path.join(ROOT, TOKENS_PATH), 'utf8')).keys());
+    const files = readClientFiles();
+    expect(files.some((f) => /var\(--/.test(f.content) && f.path !== TOKENS_PATH)).toBe(true);
+    expect(undefinedVarReferences(files, defined)).toEqual([]);
+  });
+
+  it('flags references to undefined custom properties (negative fixture)', () => {
+    const defined = new Set(['--alert-padding', '--color-primary']);
+    expect(
+      undefinedVarReferences(
+        [
+          { path: 'src/client/components/components.css', content: '.alert { padding: var(--alert-padding); color: var( --color-x); }' },
+          { path: 'src/client/components/X.tsx', content: "const s = { color: 'var(--color-primary)', gap: 'var(--space-9)' };" },
+          { path: 'src/client/a.test.ts', content: "'var(--nope)'" },
+        ],
+        defined,
+      ),
+    ).toEqual(['src/client/components/components.css: --color-x', 'src/client/components/X.tsx: --space-9']);
   });
 });
 

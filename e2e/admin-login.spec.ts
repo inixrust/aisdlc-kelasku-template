@@ -122,6 +122,27 @@ test.describe('Masuk admin (FR-1)', () => {
     await expectNoA11yViolations();
   });
 
+  test('@P1 P2-012 login ignores an unsafe or missing next and lands on /admin/kelas', async ({ page }) => {
+    for (const url of ['/admin/masuk?next=//evil.example', '/admin/masuk?next=https://evil.example', '/admin/masuk']) {
+      await page.goto(url);
+      await submitLogin(page, E2E_ADMIN.email, E2E_ADMIN.password);
+      await expect(page).toHaveURL('/admin/kelas');
+      await expect(page.getByRole('heading', { level: 1, name: 'Kelas' })).toBeVisible();
+    }
+  });
+
+  test('@P2 a failed login request shows the network alert and keeps the input', async ({ page }) => {
+    await page.goto('/admin/masuk');
+    await page.route('**/api/auth/login', (route) => route.abort('internetdisconnected'));
+    await submitLogin(page, E2E_ADMIN.email, E2E_ADMIN.password);
+
+    await expect(page.getByRole('alert')).toHaveText('Tidak dapat menghubungi server. Coba lagi.');
+    await expect(page.getByLabel('Email (wajib)')).toHaveValue(E2E_ADMIN.email);
+    await expect(page.getByLabel('Password (wajib)')).toHaveValue(E2E_ADMIN.password);
+    await expect(page.getByRole('button', { name: 'Masuk', exact: true })).toBeEnabled();
+    await expect(page).toHaveURL('/admin/masuk');
+  });
+
   test('@P1 /admin redirects to /admin/kelas', async ({ page, adminLogin }) => {
     await adminLogin();
     await page.goto('/admin');
@@ -196,6 +217,33 @@ test.describe('Kerangka halaman admin', () => {
     fail = false;
     await alert.getByRole('button', { name: 'Coba lagi' }).click();
     await expect(page.getByText(LOAD_FAILED)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Kelas' })).toBeVisible();
+  });
+
+  test('@P2 a failed session check shows the load alert without admin chrome', async ({
+    page,
+    adminLogin,
+    expectNoA11yViolations,
+  }) => {
+    await adminLogin();
+    let failSessionCheck = true;
+    await page.route('**/api/auth/session', async (route) => {
+      if (failSessionCheck) await route.abort('internetdisconnected');
+      else await route.continue();
+    });
+
+    await page.goto('/admin/kelas');
+    const alert = page.getByRole('alert');
+    await expect(alert).toContainText(LOAD_FAILED);
+    await expect(page).toHaveURL('/admin/kelas');
+    await expect(page.getByRole('button', { name: 'Keluar' })).toHaveCount(0);
+    await expect(page.getByText(E2E_ADMIN.email)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Kelas' })).toHaveCount(0);
+    await expectNoA11yViolations();
+
+    failSessionCheck = false;
+    await alert.getByRole('button', { name: 'Coba lagi' }).click();
+    await expect(page.getByRole('banner').getByRole('button', { name: 'Keluar' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Kelas' })).toBeVisible();
   });
 

@@ -2,7 +2,7 @@
 title: 'Story 1.5: Halaman masuk admin dan kerangka UI bersama'
 type: 'feature'
 created: '2026-11-03'
-status: 'in-review'
+status: 'done'
 baseline_commit: '87a181354f47aa89ff5a67c909e9158f6937fd10'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -102,6 +102,25 @@ context:
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Lapisan | Lokasi | Klaim | Verdict | Rute | Bukti |
+|---|---------|--------|-------|---------|------|-------|
+| 1 | blind, edge | `LoginPage.tsx:72` | `validation_error` dengan `fields` tanpa `email`/`password` → submit gagal diam-diam | low | ditolak | Klien memvalidasi `loginRequestSchema` yang sama sebelum kirim, dan server hanya mengirim kunci dari skema itu; jarang terjadi, perbaikan menambah cabang. |
+| 2 | blind, edge | `auth.ts:15`, `AdminLayout.tsx:38` | Keluar dengan sesi habis → 401 → alert "sesi berakhir" | false | ditolak | `POST /api/auth/logout` (`routes/auth.ts`) selalu 200 tanpa cek sesi; 401 tidak terjadi. |
+| 3 | blind, edge | `AdminLayout.tsx:26-28` | State memuat cek sesi tanpa skip link/`main`/judul | low | ditolak | Hanya tampil bila cek sesi > 300 ms dan sesaat; disengaja agar redirect awal dihitung muat pertama (Implementation Notes); perbaikan menambah kompleksitas fokus. |
+| 4 | blind | `tokens.test.ts:149` | Properti komponen non-wajib boleh hilang walau dipakai `var()` → gaya gagal diam-diam | medium | patch | Menghapus `--alert-padding` tetap lulus test. Ditambah test `undefinedVarReferences` + fixture negatif. |
+| 5 | blind | `tokens.test.ts:161` | Penjaga warna literal melewatkan `hsl(`/nama warna; hex bisa salah positif | low | ditolak | Boundaries hanya menetapkan hex/`rgb(`; tidak ada pelanggaran saat ini; deteksi nama warna menambah kompleksitas. |
+| 6 | blind | `sprint-status.yaml:43` | Status sprint `in-progress` ≠ spec `in-review` | false | ditolak | Sinkronisasi status dilakukan langkah present workflow ini. |
+| 7 | blind | spec Verification | Bukti verifikasi tidak dicatat | — | ditolak | Perbaikannya mengedit spec build ini. |
+| 8 | blind, verif-gap | `useResource.ts:5,27` | Jeda 300 ms dan logika hook tanpa test yang bergantung pada nilainya | medium | defer | Test e2e "Memuat…" tetap lulus bila jeda 0; butuh pendekatan component test (tanpa dependensi baru belum mungkin). |
+| 9 | blind, edge | `client.ts:71,145` | `next=/admin/masuk` → tombol macet "Masuk…"; `startsWith` cocok `/admin/masukan` | low | ditolak | Hanya lewat URL buatan tangan; wrapper/`AdminLayout` tidak pernah membentuk `next` itu; tidak ada rute `/admin/masuk*` lain. |
+| 10 | blind | `LoginPage.tsx:30` | Alert sesi habis muncul lagi saat reload/Back | low | ditolak | Kosmetik; state riwayat bertahan sesuai perilaku browser. |
+| 11 | blind, edge | `client.ts:137` | 2xx tanpa body → `unexpected_response` | false | ditolak | Semua endpoint mengembalikan JSON (AD-8); kondisi tidak terjangkau. |
+| 12 | blind, edge | `LoginPage`, `AdminLayout.tsx:73` | Admin yang sudah masuk tetap melihat formulir; alert keluar basi antar rute anak | low | ditolak | Di luar AC; baru satu rute anak admin. |
+| 13 | edge | `useResource.ts:57` | Data lama satu frame saat `deps` berubah | false | ditolak | Belum ada pemanggil yang memakai `deps`. |
+| 14 | verif-gap | `LoginPage.tsx:64` | Penjaga open redirect `next` tidak diuji lewat halaman | medium | patch | Ditambah e2e `@P1 P2-012 login ignores an unsafe or missing next…`. |
+| 15 | verif-gap | `LoginPage.tsx:73-75` | Login gagal jaringan/5xx tanpa test | medium | patch | Ditambah e2e `@P2 a failed login request shows the network alert…`. |
+| 16 | verif-gap | `AdminLayout.tsx:30-36` | Cek sesi gagal non-401 tanpa test | medium | patch | Ditambah e2e `@P2 a failed session check shows the load alert without admin chrome`. |
 
 ## Verification
 

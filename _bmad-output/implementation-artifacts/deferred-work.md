@@ -27,3 +27,7 @@
 - source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-4-api-masuk-dan-keluar-admin.md`
   summary: Uji prompt password tersembunyi `admin:create` (backspace, Ctrl-C) atau tambahkan cek manual di verifikasi.
   evidence: `readHiddenLine` hanya jalan bila stdin TTY; `scripts.test.ts` memakai pipe sehingga jalur itu tak pernah dieksekusi.
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-5-halaman-masuk-admin-dan-kerangka-ui-bersama.md`
+  summary: Uji jeda 300 ms "Memuat…" dan logika `useResource` (abaikan hasil basi, abort saat unmount, `retry`) secara langsung.
+  evidence: Test e2e "Memuat…" menahan request tanpa batas sehingga tetap lulus bila `LOADING_DELAY_MS` = 0; Vitest berjalan di environment node tanpa jsdom, jadi hook belum bisa dirender tanpa memilih pendekatan component test.
