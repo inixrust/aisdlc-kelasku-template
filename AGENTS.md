@@ -44,4 +44,8 @@ Aplikasi web pendaftaran dan kehadiran kelas pelatihan untuk satu lembaga. Stack
 - Di `src/client/`: label status dari `src/shared/glossary.ts`, format tanggal dari `src/shared/format.ts`, warna hanya `var(--…)` dari `src/client/styles/tokens.css`; jangan pakai UI library komponen atau framework CSS.
 - Test `services/` dan `data/` memakai berkas SQLite sementara yang nyata, jangan mock DB. Test konkurensi R1, R2, R4, R7 membuka minimal dua koneksi dari `worker_threads`.
 
+## Masalah yang diketahui
+
+- Spine tertinggal dari PRD revisi 2026-11-03. AD-6 masih menulis Selesai bila `max(session_date) < today` dan AD-19 masih "minimal satu tanggal ≥ today". Yang berlaku adalah `<= today` dan minimal satu tanggal > today (`epics.md` A-7/A-9, `src/server/domain/class-status.ts`, `src/server/domain/session-dates.ts`). Bila spine bertentangan dengan `epics.md` A-9, ikuti `epics.md`. Drift baru antara spine dan kode jangan hanya dicatat di `deferred-work.md`, karena drift spine di Epik 1 ditunda berulang kali tanpa pemilik. Laporkan ke pengguna supaya spine diperbarui lewat `bmad-architecture` sebelum story berikutnya di-build.
+
 <!-- /bmad:context -->
