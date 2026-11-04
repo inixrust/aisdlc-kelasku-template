@@ -2,7 +2,7 @@
 title: 'Story 1.7: API pendaftaran berkuota dengan daftar tunggu FIFO (R1, R2, R3)'
 type: 'feature'
 created: '2026-11-04'
-status: 'in-review'
+status: 'done'
 baseline_commit: 'ebf456cb34c96ecb380a0c96469bf87d0bbecdf7'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -100,9 +100,21 @@ context:
 
 ## Review Triage Log
 
+Review dijalankan inline di sesi utama (tanpa subagen; sesi non-interaktif tanpa instruksi eksplisit untuk subagen), mencakup lensa adversarial, edge case, dan celah verifikasi atas diff `ebf456c..HEAD`.
+
+| # | Temuan | Verdict | Rute | Bukti |
+|---|--------|---------|------|-------|
+| 1 | Email >254 karakter lolos `registrationRequestSchema` lalu ditolak CHECK `length(email) BETWEEN 3 AND 254` → `SQLITE_CONSTRAINT_CHECK` → 500, bukan 400 | medium | patch | `requiredEmail` tanpa `.max`; ditambah `EMAIL_MAX_LENGTH = 254` + `SCHEMA_MESSAGES.emailTooLong`; test regresi di `src/shared/schemas.test.ts` merah lalu hijau |
+| 2 | `planRegistration` membaca `findClassByPublicCode` sebelum `assertClassOpen` (aturan "assertClassOpen baca pertama") | false | tolak | Itu hanya resolusi `publicCode → id`, bukan baca keputusan; status, sesi, kuota dibaca ulang di `assertClassOpen` dalam tx yang sama |
+| 3 | Ekspektasi test ATDD diubah | false | tolak | `git diff ebf456c HEAD -- '*.test.ts'`: hanya penanda `it.skip`/`it.fails` → `it`, impor statis, argumen wajib `quota`/`registeredCount`, dan penyaringan test seed 1.6 per judul |
+| 4 | Email/nama bocor ke log | false | tolak | Fastify hanya mencatat URL (kode publik); handler error mencatat `err` SQLite tanpa nilai baris |
+| 5 | Retry unique violation bisa gagal lagi | false | tolak | Percobaan kedua membaca ulang di tx `BEGIN IMMEDIATE` baru sehingga baris aktif terlihat → `alreadyActive`; AC-9 ×50 hijau |
+
 ## Verification
 
 **Commands:**
 - `npm run typecheck` -- expected: exit 0
 - `npm test` -- expected: semua hijau, 0 skip/expected-fail dari story 1.7
 - `npm run build` -- expected: exit 0
+
+**Hasil (2026-11-04):** typecheck exit 0; `npm test` 38 berkas / 318 test lulus, 0 skip; build exit 0.

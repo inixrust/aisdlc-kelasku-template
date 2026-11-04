@@ -26,11 +26,14 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
 
 export const ADMIN_PASSWORD_MIN_LENGTH = 8;
 export const PARTICIPANT_NAME_MAX_LENGTH = 100;
+/** Sama dengan CHECK `registrations.email` (003_registrations.sql). */
+export const EMAIL_MAX_LENGTH = 254;
 export const CLASS_TITLE_MAX_LENGTH = 120;
 
 export const SCHEMA_MESSAGES = {
   emailRequired: 'Email wajib diisi.',
   emailInvalid: 'Format email tidak valid.',
+  emailTooLong: `Email maksimal ${EMAIL_MAX_LENGTH} karakter.`,
   passwordRequired: 'Password wajib diisi.',
   passwordTooShort: `Password minimal ${ADMIN_PASSWORD_MIN_LENGTH} karakter.`,
   titleRequired: 'Judul kelas wajib diisi.',
@@ -99,6 +102,8 @@ export const registrationRequestSchema = z.preprocess(
       .trim()
       .min(1, { error: SCHEMA_MESSAGES.nameRequired })
       .max(PARTICIPANT_NAME_MAX_LENGTH, { error: SCHEMA_MESSAGES.nameTooLong }),
-    email: requiredEmail.regex(EMAIL_FORMAT, { error: SCHEMA_MESSAGES.emailInvalid }),
+    email: requiredEmail
+      .max(EMAIL_MAX_LENGTH, { error: SCHEMA_MESSAGES.emailTooLong })
+      .regex(EMAIL_FORMAT, { error: SCHEMA_MESSAGES.emailInvalid }),
   }),
 );
