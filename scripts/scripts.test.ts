@@ -136,4 +136,40 @@ describe('seed:demo (B-2(c))', () => {
     expect(await canLogin(dbPath, 'seed@lembaga.id', 'password-seed-1')).toBe(true);
     expect(`${first.stdout}${second.stdout}`).not.toMatch(/seed@lembaga\.id|password-seed-1/i);
   }, 60_000);
+
+  // ATDD fase merah Story 1.6 — AC-9 (bagian seed dari 1.6-E2E-001, P1). Risiko: R-016.
+  it.skip('[P1] AC-9 seeds a demo class whose session dates are relative to the Clock today, idempotently', async () => {
+    const dbPath = dir.file('seed-classes', 'kelasku.db');
+    const env = { DATABASE_PATH: dbPath, SEED_ADMIN_EMAIL: 'seed@lembaga.id', SEED_ADMIN_PASSWORD: 'password-seed-1' };
+    const first = await runScript('seed:demo', { env });
+
+    const classCount = (): number => {
+      const db = createDb(dbPath);
+      try {
+        return (db.prepare('SELECT COUNT(*) AS n FROM classes').get() as { n: number }).n;
+      } finally {
+        db.close();
+      }
+    };
+
+    // Kriteria inti.
+    expect(classCount()).toBeGreaterThanOrEqual(1);
+
+    expect(first.code).toBe(0);
+    const afterFirst = classCount();
+    const second = await runScript('seed:demo', { env });
+    expect(second.code).toBe(0);
+    expect(classCount()).toBe(afterFirst);
+
+    // Relatif ke `KELASKU_FAKE_NOW` (today = 2026-11-09): minimal satu kelas masih Dibuka.
+    const db = createDb(dbPath);
+    try {
+      const open = db
+        .prepare('SELECT COUNT(DISTINCT class_id) AS n FROM class_sessions GROUP BY class_id HAVING MAX(session_date) > ?')
+        .all('2026-11-09');
+      expect(open.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      db.close();
+    }
+  }, 60_000);
 });
