@@ -1,0 +1,194 @@
+{
+  "schema_version": "0.3.0",
+  "snapshot_at": "2026-11-04T13:36:15.000Z",
+  "repo": "aisdlc-kelasku",
+  "collection_mode": "contract_static",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "priority_thresholds",
+  "source_sha": "5fd56b9c9b2a9544c3f36d639d3ccb2ac0a86919",
+  "target": {
+    "type": "epic",
+    "id": "1",
+    "label": "Epic 1 — Kelas & Pendaftaran Berkuota (R1–R3, R7)"
+  },
+  "decision_mode": "deterministic",
+  "evaluator": "Rustan",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/test-artifacts/test-design-epic-1.md",
+      "_bmad-output/planning-artifacts/epics.md",
+      "_bmad-output/implementation-artifacts/sprint-status.yaml",
+      "_bmad-output/implementation-artifacts/deferred-work.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "gate_status": "FAIL",
+  "coverage": {
+    "inventory": {
+      "covered": 25,
+      "total": 57,
+      "pct": 44
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 6,
+        "covered": 4,
+        "pct": 67
+      },
+      "P1": {
+        "total": 28,
+        "covered": 14,
+        "pct": 50
+      },
+      "P2": {
+        "total": 17,
+        "covered": 6,
+        "pct": 35
+      },
+      "P3": {
+        "total": 6,
+        "covered": 1,
+        "pct": 17
+      }
+    },
+    "by_level": {
+      "e2e": {
+        "tests": 4,
+        "criteria_covered": 2
+      },
+      "api": {
+        "tests": 20,
+        "criteria_covered": 19
+      },
+      "component": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "unit": {
+        "tests": 6,
+        "criteria_covered": 6
+      },
+      "live": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 0
+      }
+    }
+  },
+  "tests": {
+    "files": 16,
+    "cases": 30,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 2,
+    "high_open": 14,
+    "medium_open": 11,
+    "low_open": 5
+  },
+  "heuristics": {
+    "endpoint_gaps": 2,
+    "auth_negative_path_status": "present",
+    "error_path_status": "present",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "live_evidence": {
+    "present": false,
+    "results_file": "_bmad-output/test-artifacts/live-verification-results.json",
+    "freshness": "not_present",
+    "recorded_source_sha": "",
+    "current_source_sha": "5fd56b9c9b2a9544c3f36d639d3ccb2ac0a86919",
+    "producer": "",
+    "counted": 0,
+    "stale": 0,
+    "unverifiable": 0,
+    "failed": 0,
+    "contradicted": 0,
+    "blocked": 0,
+    "skipped": 0,
+    "unmatched": 0,
+    "invalid": 0,
+    "requirements_live_only": 0
+  },
+  "gate_criteria": {
+    "p0_coverage_required": "100%",
+    "p0_coverage_actual": "67%",
+    "p0_status": "NOT_MET",
+    "p1_coverage_target": "90%",
+    "p1_coverage_minimum": "80%",
+    "p1_coverage_actual": "50%",
+    "p1_status": "NOT_MET",
+    "overall_coverage_minimum": "80%",
+    "overall_coverage_actual": "44%",
+    "overall_status": "NOT_MET"
+  },
+  "blockers": [],
+  "rejected_evidence": [],
+  "recommendations": [
+    {
+      "priority": "URGENT",
+      "action": "Implementasikan Story 1.11 dan 1.8/1.9, lalu jalankan /bmad-testarch-atdd untuk 2 kriteria P0 yang belum tercakup",
+      "requirements": [
+        "1.11-INT-001",
+        "1.9-E2E-001"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Bangun Story 1.8–1.12 dengan ATDD; jalankan /bmad-testarch-automate untuk 14 kriteria P1 tanpa coverage",
+      "requirements": [
+        "1.8-E2E-001",
+        "1.8-E2E-002",
+        "1.8-E2E-003",
+        "1.8-E2E-004",
+        "1.9-API-001",
+        "1.9-E2E-002",
+        "1.10-API-001",
+        "1.10-INT-001",
+        "1.11-API-001",
+        "1.11-INT-003",
+        "1.11-INT-005",
+        "1.11-INT-006",
+        "1.11-API-002",
+        "1.12-E2E-001"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Tambah test API untuk 2 endpoint Epik 1 yang belum ada",
+      "requirements": [
+        "1.9-API-001",
+        "1.11-API-001"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Tambah pencatatan durasi skenario konkurensi di CI (X-OPS-001) sebelum Story 1.11 menambah skenario ketiga",
+      "requirements": [
+        "X-OPS-001"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "Jalankan /bmad-testarch-test-review untuk menilai kualitas test",
+      "requirements": []
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

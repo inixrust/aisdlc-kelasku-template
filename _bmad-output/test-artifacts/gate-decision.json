@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-11-04T13:36:15.000Z",
+  "repo": "aisdlc-kelasku",
+  "target": {
+    "type": "epic",
+    "id": "1",
+    "label": "Epic 1 — Kelas & Pendaftaran Berkuota (R1–R3, R7)"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "FAIL",
+  "rationale": "P0 coverage is 67% (required: 100%). 2 critical requirement(s) below FULL coverage.",
+  "p0_status": "NOT_MET",
+  "p1_status": "NOT_MET",
+  "overall_status": "NOT_MET",
+  "critical_open": 2,
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability-matrix.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}
