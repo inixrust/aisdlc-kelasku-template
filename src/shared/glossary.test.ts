@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classStatusLabel, registrationStatusLabel } from './glossary.js';
+import { classStatusLabel, eligibilityLabel, registrationStatusLabel } from './glossary.js';
 
 describe('glossary (PRD §3)', () => {
   it('labels registration statuses with the exact glossary terms', () => {
@@ -12,5 +12,11 @@ describe('glossary (PRD §3)', () => {
     expect(classStatusLabel('open')).toBe('Dibuka');
     expect(classStatusLabel('full')).toBe('Penuh');
     expect(classStatusLabel('finished')).toBe('Selesai');
+  });
+
+  it('labels eligibility statuses with the exact glossary terms', () => {
+    expect(eligibilityLabel('eligible')).toBe('Layak');
+    expect(eligibilityLabel('not_eligible')).toBe('Belum layak');
+    expect(eligibilityLabel('cannot_be_eligible')).toBe('Tidak mungkin layak');
   });
 });

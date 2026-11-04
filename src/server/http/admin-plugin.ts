@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { AppError } from '../../shared/errors.js';
 import type { AdminIdentity } from '../services/auth.js';
 import type { Services } from '../services/index.js';
+import { adminClassesRoutes } from './routes/admin-classes.js';
 import { readSessionToken } from './session-cookie.js';
 
 declare module 'fastify' {
@@ -15,7 +16,7 @@ declare module 'fastify' {
 export type AdminRoutes = (admin: FastifyInstance, services: Services) => void | Promise<void>;
 
 /** Rute admin produksi; story berikutnya menambahkan pendaftarnya di sini. */
-export const ADMIN_ROUTES: readonly AdminRoutes[] = [];
+export const ADMIN_ROUTES: readonly AdminRoutes[] = [adminClassesRoutes];
 
 export interface AdminPluginOptions {
   services: Services;

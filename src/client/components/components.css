@@ -212,3 +212,207 @@
 .error-summary a {
   color: var(--color-danger);
 }
+
+/* Badge status (DESIGN.md status-badge-*): ikon dekoratif + teks, tidak interaktif. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--status-badge-padding);
+  border-radius: var(--status-badge-radius);
+  font-family: var(--font-caption-family);
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-label-weight);
+  line-height: var(--font-caption-line-height);
+  white-space: nowrap;
+}
+
+.badge .icon {
+  margin-top: 0;
+}
+
+.badge-registered {
+  background: var(--status-badge-terdaftar-background);
+  color: var(--status-badge-terdaftar-foreground);
+}
+
+.badge-waitlisted {
+  background: var(--status-badge-daftar-tunggu-background);
+  color: var(--status-badge-daftar-tunggu-foreground);
+}
+
+.badge-cancelled {
+  background: var(--status-badge-dibatalkan-background);
+  color: var(--status-badge-dibatalkan-foreground);
+}
+
+.badge-open {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.badge-full {
+  background: var(--status-badge-penuh-background);
+  color: var(--status-badge-penuh-foreground);
+}
+
+.badge-finished {
+  background: var(--status-badge-selesai-background);
+  color: var(--status-badge-selesai-foreground);
+}
+
+.badge-eligible {
+  background: var(--status-badge-layak-background);
+  color: var(--status-badge-layak-foreground);
+}
+
+.badge-not_eligible {
+  background: var(--status-badge-belum-layak-background);
+  color: var(--status-badge-belum-layak-foreground);
+}
+
+.badge-cannot_be_eligible {
+  background: var(--status-badge-tidak-mungkin-layak-background);
+  color: var(--status-badge-tidak-mungkin-layak-foreground);
+}
+
+/* Toast (DESIGN.md toast): kanan bawah di admin; live region selalu ada. */
+.toast-region {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 10;
+  max-width: calc(100vw - 2 * var(--space-page-margin-mobile));
+}
+
+.toast {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--toast-radius);
+  background: var(--toast-background);
+  color: var(--toast-foreground);
+}
+
+@media (max-width: 639px) {
+  .toast-region {
+    left: var(--space-page-margin-mobile);
+    right: var(--space-page-margin-mobile);
+    bottom: var(--space-4);
+  }
+}
+
+/* Salin tautan */
+.copy-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.copy-link-failed {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption-size);
+}
+
+/* Formulir kelas: baris tanggal sesi */
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.session-dates {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.session-dates legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-family: var(--font-label-family);
+  font-size: var(--font-label-size);
+  font-weight: var(--font-label-weight);
+  line-height: var(--font-label-line-height);
+}
+
+.session-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.session-date-row .field {
+  flex: 1 1 12rem;
+}
+
+.session-date-row .button {
+  margin-bottom: 0;
+}
+
+/* Kepala kelas admin */
+.class-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.class-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.section h2 {
+  font-family: var(--font-section-title-family);
+  font-size: var(--font-section-title-size);
+  font-weight: var(--font-section-title-weight);
+  line-height: var(--font-section-title-line-height);
+  margin: 0;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.today-marker {
+  margin-left: var(--space-2);
+  padding: var(--status-badge-padding);
+  border-radius: var(--status-badge-radius);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-label-weight);
+}
+
+.registration-link {
+  margin: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+  font-family: var(--font-body-family);
+}
+
+/* Tautan bergaya tombol (mis. "Buat kelas"): warna tombol menang atas warna tautan bawaan. */
+a.button {
+  text-decoration: none;
+}
+
+a.button-primary,
+a.button-primary:hover {
+  color: var(--button-primary-foreground);
+}

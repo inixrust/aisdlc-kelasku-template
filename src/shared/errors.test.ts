@@ -13,6 +13,7 @@ describe('error registry (AD-8)', () => {
 
   it.each([
     ['not_found', 404],
+    ['class_not_found', 404],
     ['validation_error', 400],
     ['unauthorized', 401],
     ['invalid_credentials', 401],

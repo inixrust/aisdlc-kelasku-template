@@ -4,8 +4,7 @@
  * - AC-8 (1.6-API-003, P2): `GET /api/admin/classes/:id` id tak dikenal → 404 `class_not_found`.
  * Auth 401 untuk rute baru sudah dicakup enumerasi `onRoute` di `auth.test.ts` (P0-008).
  *
- * Kode `class_not_found` belum ada di `src/shared/errors.ts`, jadi ditulis sebagai string literal
- * agar typecheck hijau. Saat aktivasi: daftarkan kodenya lalu ganti dengan `getError('class_not_found')`.
+ * Fase hijau: diaktifkan oleh Story 1.6; `class_not_found` kini terdaftar di `src/shared/errors.ts`.
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -87,7 +86,7 @@ afterAll(async () => {
 });
 
 describe('POST /api/admin/classes (FR2, FR6, AD-3, AD-10)', () => {
-  it.skip('[P1] AC-3 FR2: a valid class is stored with its sessions in one transaction and answered 201 with the class DTO', async () => {
+  it('[P1] AC-3 FR2: a valid class is stored with its sessions in one transaction and answered 201 with the class DTO', async () => {
     const title = uniqueTitle('Excel untuk Laporan Keuangan');
     const response = await adminRequest('POST', '/api/admin/classes', validClass({ title: `  ${title}  ` }));
 
@@ -141,11 +140,11 @@ describe('POST /api/admin/classes (FR2, FR6, AD-3, AD-10)', () => {
 });
 
 describe('GET /api/admin/classes/:id (FR5, AD-8, AD-10)', () => {
-  it.skip('[P2] AC-8 FR5: an unknown class id answers 404 class_not_found', async () => {
+  it('[P2] AC-8 FR5: an unknown class id answers 404 class_not_found', async () => {
     const response = await adminRequest('GET', '/api/admin/classes/987654');
 
     // Kriteria inti.
-    expect(response.json<ErrorBody>().error.code).toBe('class_not_found');
+    expect(response.json<ErrorBody>().error.code).toBe(getError('class_not_found').code);
 
     expect(response.statusCode).toBe(404);
     expect(response.json<ErrorBody>().error.message).toMatch(/\S/);

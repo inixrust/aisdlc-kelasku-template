@@ -3,6 +3,7 @@
  * kunci `fields` di envelope adalah path bertitik dari skema ini.
  */
 import { z } from 'zod';
+import { isCalendarDate } from './format.js';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,12 +25,18 @@ export function fieldErrorsOf(error: z.ZodError): Record<string, string> {
 }
 
 export const ADMIN_PASSWORD_MIN_LENGTH = 8;
+export const CLASS_TITLE_MAX_LENGTH = 120;
 
 export const SCHEMA_MESSAGES = {
   emailRequired: 'Email wajib diisi.',
   emailInvalid: 'Format email tidak valid.',
   passwordRequired: 'Password wajib diisi.',
   passwordTooShort: `Password minimal ${ADMIN_PASSWORD_MIN_LENGTH} karakter.`,
+  titleRequired: 'Judul kelas wajib diisi.',
+  titleTooLong: `Judul kelas maksimal ${CLASS_TITLE_MAX_LENGTH} karakter.`,
+  quotaInvalid: 'Kuota harus bilangan bulat minimal 1.',
+  sessionDatesRequired: 'Tambahkan minimal satu tanggal sesi.',
+  sessionDateInvalid: 'Isi tanggal sesi yang valid atau hapus barisnya.',
 } as const;
 
 const requiredEmail = z
@@ -53,3 +60,24 @@ export const adminCredentialsSchema = z.object({
     .string({ error: SCHEMA_MESSAGES.passwordRequired })
     .min(ADMIN_PASSWORD_MIN_LENGTH, { error: SCHEMA_MESSAGES.passwordTooShort }),
 });
+
+/**
+ * `POST /api/admin/classes` (FR2). Judul di-trim 1–120 karakter; kuota bilangan bulat ≥ 1 tanpa koersi
+ * (string `"20"` ditolak); setiap tanggal `YYYY-MM-DD` kalender nyata. Daftar kosong, tanggal ganda, dan
+ * aturan "minimal satu tanggal setelah hari ini" diperiksa `validateSessionDates` di domain (AD-19).
+ */
+export const createClassRequestSchema = z.preprocess(
+  asObject,
+  z.object({
+    title: z
+      .string({ error: SCHEMA_MESSAGES.titleRequired })
+      .trim()
+      .min(1, { error: SCHEMA_MESSAGES.titleRequired })
+      .max(CLASS_TITLE_MAX_LENGTH, { error: SCHEMA_MESSAGES.titleTooLong }),
+    sessionDates: z.array(
+      z.string({ error: SCHEMA_MESSAGES.sessionDateInvalid }).refine(isCalendarDate, { error: SCHEMA_MESSAGES.sessionDateInvalid }),
+      { error: SCHEMA_MESSAGES.sessionDatesRequired },
+    ),
+    quota: z.number({ error: SCHEMA_MESSAGES.quotaInvalid }).int({ error: SCHEMA_MESSAGES.quotaInvalid }).min(1, { error: SCHEMA_MESSAGES.quotaInvalid }),
+  }),
+);

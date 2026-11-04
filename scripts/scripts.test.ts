@@ -137,8 +137,8 @@ describe('seed:demo (B-2(c))', () => {
     expect(`${first.stdout}${second.stdout}`).not.toMatch(/seed@lembaga\.id|password-seed-1/i);
   }, 60_000);
 
-  // ATDD fase merah Story 1.6 — AC-9 (bagian seed dari 1.6-E2E-001, P1). Risiko: R-016.
-  it.skip('[P1] AC-9 seeds a demo class whose session dates are relative to the Clock today, idempotently', async () => {
+  // ATDD Story 1.6 — AC-9 (bagian seed dari 1.6-E2E-001, P1). Risiko: R-016. Fase hijau.
+  it('[P1] AC-9 seeds a demo class whose session dates are relative to the Clock today, idempotently', async () => {
     const dbPath = dir.file('seed-classes', 'kelasku.db');
     const env = { DATABASE_PATH: dbPath, SEED_ADMIN_EMAIL: 'seed@lembaga.id', SEED_ADMIN_PASSWORD: 'password-seed-1' };
     const first = await runScript('seed:demo', { env });

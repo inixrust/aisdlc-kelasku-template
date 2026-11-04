@@ -5,6 +5,7 @@
 import type { Db } from '../data/db.js';
 import type { Clock } from '../clock.js';
 import { type AuthService, createAuthService } from './auth.js';
+import { type ClassesService, createClassesService } from './classes.js';
 
 export interface ServiceDeps {
   db: Db;
@@ -13,10 +14,12 @@ export interface ServiceDeps {
 
 export interface Services {
   auth: AuthService;
+  classes: ClassesService;
 }
 
 export function createServices(deps: ServiceDeps): Services {
   return {
     auth: createAuthService(deps),
+    classes: createClassesService(deps),
   };
 }

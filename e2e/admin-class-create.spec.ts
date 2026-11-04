@@ -1,5 +1,5 @@
 /**
- * ATDD fase merah Story 1.6 — UJ-1 langkah 1–4 (1.6-E2E-001 P1, 1.6-E2E-002 P2). Risiko: R-017, R-023.
+ * ATDD Story 1.6 (fase hijau) — UJ-1 langkah 1–4 (1.6-E2E-001 P1, 1.6-E2E-002 P2). Risiko: R-017, R-023.
  * - AC-5: formulir Buat kelas, error server di baris tanggal + ringkasan, nilai tetap, "Menyimpan…".
  * - AC-6: setelah simpan → halaman kelas, toast "Kelas tersimpan", kepala kelas.
  * - AC-7: "Salin tautan" → clipboard, label "Tautan disalin" 3 detik lewat aria-live.
@@ -34,7 +34,7 @@ async function fillClassForm(page: Page, input: { title: string; dates: string[]
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test.describe('Buat kelas dan bagikan tautan (FR2, FR6, UJ-1)', () => {
-  test.skip(
+  test(
     '[P1] AC-5 FR2: server errors stay next to the duplicate date row and in the error summary, values are kept, and the button reads "Menyimpan…" while saving',
     { tag: '@P1' },
     async ({ page, adminLogin, uid, expectNoA11yViolations }) => {
@@ -84,7 +84,7 @@ test.describe('Buat kelas dan bagikan tautan (FR2, FR6, UJ-1)', () => {
     },
   );
 
-  test.skip(
+  test(
     '[P1] AC-6 FR2: saving opens the admin class page with the "Kelas tersimpan" toast and the class header',
     { tag: '@P1' },
     async ({ page, adminLogin, uid, expectNoA11yViolations }) => {
@@ -127,7 +127,7 @@ test.describe('Buat kelas dan bagikan tautan (FR2, FR6, UJ-1)', () => {
     },
   );
 
-  test.skip(
+  test(
     '[P2] AC-7 FR6: "Salin tautan" copies the full URL and announces "Tautan disalin" for 3 seconds',
     { tag: '@P2' },
     async ({ page, context, adminLogin, uid, expectNoA11yViolations }) => {

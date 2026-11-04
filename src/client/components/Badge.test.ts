@@ -3,27 +3,16 @@
  * Vitest berjalan di environment `node` (tanpa jsdom), jadi `Badge` dirender ke HTML statis
  * dengan `react-dom/server`, tanpa dependensi baru.
  *
- * `./Badge` belum ada; impor dinamis agar berkas termuat selama `it.skip` dan typecheck hijau.
- * Kontrak yang diasumsikan: `<Badge variant="waitlisted" />`, varian = kunci Inggris
- * (lihat checklist ATDD). Saat aktivasi: impor statis lalu hapus `.skip`.
+ * Fase hijau: diaktifkan oleh Story 1.6. Kontrak: `<Badge variant="waitlisted" />`, varian = kunci Inggris.
  */
-import { type ComponentType, createElement } from 'react';
+import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CLASS_STATUS_LABELS, REGISTRATION_STATUS_LABELS } from '../../shared/glossary';
-
-type BadgeComponent = ComponentType<{ variant: string }>;
-
-const BADGE_MODULE = './Badge';
-
-async function loadBadge(): Promise<BadgeComponent> {
-  const mod = (await import(/* @vite-ignore */ BADGE_MODULE)) as { Badge: BadgeComponent };
-  return mod.Badge;
-}
+import { Badge, type BadgeVariant } from './Badge';
 
 describe('Badge (UX-DR4, DESIGN.md)', () => {
-  it.skip('[P3] AC-4 the Daftar tunggu badge uses the warning tone, never danger, with a decorative icon and glossary text', async () => {
-    const Badge = await loadBadge();
+  it('[P3] AC-4 the Daftar tunggu badge uses the warning tone, never danger, with a decorative icon and glossary text', () => {
     const html = renderToStaticMarkup(createElement(Badge, { variant: 'waitlisted' }));
 
     // Kriteria inti: Daftar tunggu bukan kegagalan, jadi tidak berwarna danger.
@@ -35,7 +24,7 @@ describe('Badge (UX-DR4, DESIGN.md)', () => {
 
     // Semua varian: teks Glosarium, ikon dekoratif, tidak interaktif.
     // Label kelayakan (Layak, Belum layak, Tidak mungkin layak) ditambahkan ke glossary.ts oleh story ini.
-    const variants: Array<[string, string]> = [
+    const variants: Array<[BadgeVariant, string]> = [
       ['registered', REGISTRATION_STATUS_LABELS.registered],
       ['waitlisted', REGISTRATION_STATUS_LABELS.waitlisted],
       ['cancelled', REGISTRATION_STATUS_LABELS.cancelled],

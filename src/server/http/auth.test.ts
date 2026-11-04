@@ -275,7 +275,15 @@ describe('/api/admin auth hook (AD-8, P0-008)', () => {
 
   it('discovers every admin route via onRoute', () => {
     expect(adminRoutesOf(main.routes).map((r) => `${r.method} ${r.url}`).sort()).toEqual(
-      ['DELETE /api/admin/uji/:id', 'GET /api/admin/uji', 'PATCH /api/admin/uji/:id', 'POST /api/admin/uji', 'PUT /api/admin/uji/:id'].sort(),
+      [
+        'GET /api/admin/classes/:id',
+        'POST /api/admin/classes',
+        'DELETE /api/admin/uji/:id',
+        'GET /api/admin/uji',
+        'PATCH /api/admin/uji/:id',
+        'POST /api/admin/uji',
+        'PUT /api/admin/uji/:id',
+      ].sort(),
     );
   });
 
@@ -290,7 +298,7 @@ describe('/api/admin auth hook (AD-8, P0-008)', () => {
       ...(await callAll(expired.app, expired.routes, token)),
     ];
 
-    expect(responses).toHaveLength(15);
+    expect(responses).toHaveLength(3 * adminRoutesOf(main.routes).length);
     for (const response of responses) {
       expect(response.statusCode).toBe(401);
       expect(response.json()).toEqual(UNAUTHORIZED);
@@ -321,7 +329,10 @@ describe('/api/admin auth hook (AD-8, P0-008)', () => {
   it('runs the handler with request.admin for a valid session', async () => {
     const token = sessionCookieOf(await login(main.app, { email: adminEmail, password: PASSWORD }));
     handlerCalls = 0;
-    const responses = await callAll(main.app, main.routes, token);
+    // Hanya rute uji: rute produksi punya kontrak responsnya sendiri (mis. admin-classes.test.ts).
+    const testRoutes = main.routes.filter((route) => route.url.startsWith('/api/admin/uji'));
+    const responses = await callAll(main.app, testRoutes, token);
+    expect(responses).toHaveLength(5);
     for (const response of responses) {
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ email: adminEmail });
