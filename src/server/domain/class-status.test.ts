@@ -7,7 +7,7 @@
  * Penuh (`full`) ditambahkan di Story 1.7, jadi di sini hanya `open` | `finished`.
  */
 import { describe, expect, it } from 'vitest';
-import { classStatus } from './class-status.js';
+import { classStatus, nextSessionDate } from './class-status.js';
 
 const TODAY = '2026-11-09';
 
@@ -20,5 +20,17 @@ describe('classStatus (FR4, AD-6)', () => {
     expect(classStatus({ sessionDates: [TODAY, '2026-11-10'], today: TODAY, quota: 5, registeredCount: 0 })).toBe('open');
     // Urutan masukan tidak menentukan: yang dipakai max(session_date).
     expect(classStatus({ sessionDates: ['2026-11-16', '2026-11-02'], today: TODAY, quota: 5, registeredCount: 0 })).toBe('open');
+  });
+});
+
+// Automate Story 1.7 — `nextSessionDate` di hasil pendaftaran = sesi pertama >= today (asumsi ATDD A-4).
+describe('nextSessionDate (FR7, AD-6)', () => {
+  it.each([
+    ['today itself when a session is today', [TODAY, '2026-11-16'], TODAY],
+    ['the earliest upcoming date regardless of input order', ['2026-11-23', '2026-11-16'], '2026-11-16'],
+    ['skipping past dates', ['2026-11-02', '2026-11-16'], '2026-11-16'],
+    ['undefined when every date is past', ['2026-11-02', '2026-11-08'], undefined],
+  ])('[P2] returns %s', (_label, sessionDates, expected) => {
+    expect(nextSessionDate(sessionDates, TODAY)).toBe(expected);
   });
 });

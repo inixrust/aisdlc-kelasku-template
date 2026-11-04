@@ -63,4 +63,17 @@ describe('registration closing time (FR7, AD-7)', () => {
     expect(lastMinute.statusCode).toBe(200);
     expect((lastMinute.json() as { status: string }).status).toBe('registered');
   });
+
+  // Automate Story 1.7 — cabang sekunder ATDD AC-3: klien memakai `today` dari respons, jadi nilainya ikut bergeser.
+  it('[P2] AC-3 FR7: the public class reports today and status in WIB, flipping to finished at 00.00 WIB on the last session date', async () => {
+    const at = async (nowIso: string) => {
+      const app = await buildApp({ services: createServices({ db: testDb.db, clock: fixedClock(nowIso) }), clientDir: clientDir.path });
+      apps.push(app);
+      return (await app.inject({ method: 'GET', url: `/api/public/classes/${publicCode}` })).json() as { status: string; today: string };
+    };
+
+    expect(await at(LAST_MINUTE_OPEN)).toMatchObject({ today: '2026-11-09', status: 'open' });
+    expect(await at(MIDNIGHT_CLOSED)).toMatchObject({ today: '2026-11-10', status: 'finished' });
+    expect(await at(LAST_DAY_CLOSED)).toMatchObject({ today: '2026-11-10', status: 'finished' });
+  });
 });

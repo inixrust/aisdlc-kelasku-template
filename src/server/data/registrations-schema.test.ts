@@ -1,19 +1,13 @@
 /**
  * ATDD Story 1.7 — AC-1 (1.7-INT-010, P2 di test design; satu leaf karena setiap AC wajib punya
- * scaffold). Risiko: R-015, R-019. Skema `registrations` (AD-5, AD-10, AD-15, AD-17) lewat SQL mentah,
- * ditambah pemeriksaan statis penulis tunggal (AD-17).
+ * scaffold). Risiko: R-015, R-019. Skema `registrations` (AD-5, AD-10, AD-15, AD-17) lewat SQL mentah.
+ * Pemeriksaan statis penulis tunggal (AD-17) kini ada di fitness test HP-3 `src/architecture.test.ts`.
  *
- * Fase hijau: diaktifkan oleh Story 1.7. Cabang tambahan (fitness test HP-3 permanen) ada di checklist ATDD 1.7.
+ * Fase hijau: diaktifkan oleh Story 1.7.
  */
-import { readdirSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { givenClass } from '../../../test/helpers/registrations.js';
 import { createTestDb, TEST_NOW_ISO, type TestDb } from '../../../test/helpers/test-db.js';
-
-const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const SRC_DIR = path.join(REPO_ROOT, 'src');
 
 const EXPECTED_COLUMNS = [
   'cancelled_at',
@@ -60,14 +54,8 @@ function insertRaw(row: Partial<Record<string, unknown>> = {}): void {
     });
 }
 
-function sourceFiles(dir: string): string[] {
-  return (readdirSync(dir, { recursive: true, encoding: 'utf8' }) as string[])
-    .filter((file) => /\.(ts|tsx)$/.test(file) && !/\.test\.tsx?$/.test(file))
-    .map((file) => path.join(dir, file));
-}
-
 describe('registrations schema (AD-5, AD-10, AD-15, AD-17)', () => {
-  it('[P2] AC-1 AD-17: registrations has the agreed columns, CHECKs and indexes, no time DEFAULT, and only registrations-repo.ts writes it', () => {
+  it('[P2] AC-1 AD-17: registrations has the agreed columns, CHECKs and indexes, and no time DEFAULT', () => {
     const columns = testDb.db.prepare("SELECT name, dflt_value AS dflt FROM pragma_table_info('registrations')").all() as {
       name: string;
       dflt: string | null;
@@ -100,16 +88,29 @@ describe('registrations schema (AD-5, AD-10, AD-15, AD-17)', () => {
     expect(() => insertRaw({ email: 'ganda@contoh.id', status: 'cancelled', cancelled_at: TEST_NOW_ISO, cancelled_by: 'participant' })).not.toThrow();
     expect(() => insertRaw({ class_id: 987654 })).toThrow(/FOREIGN KEY/);
 
-    // AD-17: satu penulis; tidak ada DELETE.
-    const writers: string[] = [];
-    const deleters: string[] = [];
-    for (const file of sourceFiles(SRC_DIR)) {
-      const content = readFileSync(file, 'utf8');
-      const relative = path.relative(REPO_ROOT, file).split(path.sep).join('/');
-      if (/\b(INSERT\s+(OR\s+\w+\s+)?INTO|UPDATE)\s+registrations\b/i.test(content)) writers.push(relative);
-      if (/\bDELETE\s+FROM\s+registrations\b/i.test(content)) deleters.push(relative);
-    }
-    expect(writers).toEqual(['src/server/data/registrations-repo.ts']);
-    expect(deleters).toEqual([]);
+    // AD-17 penulis tunggal + tanpa DELETE dijaga permanen oleh fitness test HP-3 `src/architecture.test.ts`
+    // (aturan `registrations-single-writer`, dipindahkan dari sini oleh automate Story 1.7).
+  });
+
+  // Automate Story 1.7 — CHECK yang belum disentuh AC-1. Jaring lapis DB di bawah zod (hanya terlihat lewat SQL langsung).
+  it.each<[label: string, row: Partial<Record<string, unknown>>]>([
+    ['an empty name', { name: '' }],
+    ['a 101-character name', { name: 'a'.repeat(101) }],
+    ['a 2-character email', { email: 'a@' }],
+    ['a 255-character email', { email: `${'a'.repeat(250)}@x.id` }],
+    ['a 9-character public_ref', { public_ref: 'AAAAAAAAA' }],
+    ['a public_ref outside base64url', { public_ref: 'AAAA+AAAA/' }],
+    ['an unknown cancelled_by', { status: 'cancelled', cancelled_at: TEST_NOW_ISO, cancelled_by: 'system' }],
+    ['cancelled without cancelled_by', { status: 'cancelled', cancelled_at: TEST_NOW_ISO }],
+    ['a cancelled_at that is not ISO-Z', { status: 'cancelled', cancelled_at: '2026-11-09 10:00', cancelled_by: 'admin' }],
+  ])('[P2] AD-17: the schema rejects %s', (_label, row) => {
+    expect(() => insertRaw(row)).toThrow(/CHECK/);
+  });
+
+  it('[P2] AD-17: boundary values 1/100-character name, 254-character email and a full cancellation are accepted', () => {
+    expect(() => insertRaw({ name: 'a' })).not.toThrow();
+    expect(() => insertRaw({ name: 'a'.repeat(100) })).not.toThrow();
+    expect(() => insertRaw({ email: `${'a'.repeat(249)}@x.id` })).not.toThrow();
+    expect(() => insertRaw({ status: 'cancelled', cancelled_at: TEST_NOW_ISO, cancelled_by: 'admin' })).not.toThrow();
   });
 });

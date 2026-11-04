@@ -193,3 +193,69 @@ describe('POST /api/public/classes/:code/registrations (FR7, FR8, FR10, AD-5, AD
     expect((unknown.json() as RegistrationBody).error?.code).toBe('class_not_found');
   });
 });
+
+/** Automate Story 1.7 — cabang sekunder ATDD AC-4 dan 1.7-INT-012. */
+describe('public registration route — secondary branches (AD-8, AD-9, NFR8)', () => {
+  it.each([
+    ['text/plain', 'text/plain'],
+    ['form-urlencoded', 'application/x-www-form-urlencoded'],
+    ['no Content-Type', undefined],
+  ])('[P2] AD-9: a registration sent as %s is 415 unsupported_media_type and creates no row', async (_label, contentType) => {
+    const cls = givenClass(testDb.db);
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/public/classes/${cls.publicCode}/registrations`,
+      ...(contentType === undefined ? {} : { headers: { 'content-type': contentType } }),
+      payload: `name=Rina&email=${uniqueEmail('rina')}`,
+    });
+
+    expect(response.statusCode).toBe(415);
+    expect((response.json() as RegistrationBody).error?.code).toBe('unsupported_media_type');
+    expect(statusCounts(testDb.db, cls.id)).toEqual({ registered: 0, waitlisted: 0, cancelled: 0 });
+  });
+
+  it('[P2] 1.7-INT-012 NFR8: registering never writes the participant email or name to the log', async () => {
+    const logLines: string[] = [];
+    const loggingApp = await buildApp({
+      services: testDb.services,
+      clientDir: clientDir.path,
+      logger: { level: 'trace', stream: { write: (line: string) => void logLines.push(line) } },
+    });
+    try {
+      const cls = givenClass(testDb.db, { quota: 1 });
+      const finished = givenClass(testDb.db, { nowIso: PAST_NOW_ISO, sessionDates: ['2026-11-06'] });
+      const people = [
+        { name: 'Wulan Anggraini', email: uniqueEmail('wulan') },
+        { name: 'Yoga Permana', email: uniqueEmail('yoga') },
+      ];
+      const post = (code: string, body: unknown) =>
+        loggingApp.inject({
+          method: 'POST',
+          url: `/api/public/classes/${code}/registrations`,
+          headers: { 'content-type': 'application/json' },
+          payload: JSON.stringify(body),
+        });
+      // Terdaftar, Daftar tunggu, sudah aktif, 400, 409, dan GET publik.
+      const statuses = [
+        (await post(cls.publicCode, people[0])).statusCode,
+        (await post(cls.publicCode, people[1])).statusCode,
+        (await post(cls.publicCode, people[1])).statusCode,
+        (await post(cls.publicCode, { name: people[0]?.name, email: 'wulan.tanpa.at' })).statusCode,
+        (await post(finished.publicCode, people[0])).statusCode,
+        (await loggingApp.inject({ method: 'GET', url: `/api/public/classes/${cls.publicCode}` })).statusCode,
+      ];
+      expect(statuses).toEqual([200, 200, 200, 400, 409, 200]);
+
+      const log = logLines.join('\n').toLowerCase();
+      // Kriteria inti: log memang terisi (bukan lulus kosong), tetapi tanpa data peserta.
+      expect(log).toContain(`/api/public/classes/${cls.publicCode.toLowerCase()}/registrations`);
+      for (const p of people) {
+        expect(log).not.toContain(p.email.toLowerCase());
+        expect(log).not.toContain(p.name.toLowerCase());
+      }
+      expect(log).not.toContain('wulan.tanpa.at');
+    } finally {
+      await loggingApp.close();
+    }
+  });
+});

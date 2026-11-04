@@ -2,113 +2,137 @@
 stepsCompleted: ['step-01-preflight-and-context', 'step-02-identify-targets', 'step-03-generate-tests', 'step-03c-aggregate', 'step-04-validate-and-summarize']
 lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-11-04'
-story: '1.6'
+story: '1.7'
+previousSummary: _bmad-output/test-artifacts/automation-summary-1-6.md
 inputDocuments:
   - _bmad-output/test-artifacts/test-design-epic-1.md
-  - _bmad-output/test-artifacts/atdd-checklist-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md
-  - _bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md
-  - _bmad-output/implementation-artifacts/deferred-work.md
+  - _bmad-output/test-artifacts/atdd-checklist-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md
+  - _bmad-output/implementation-artifacts/spec-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md
+  - _bmad-output/planning-artifacts/architecture/architecture-aisdlc-kelasku-2026-11-02/ARCHITECTURE-SPINE.md (AD-17)
   - playwright.config.ts
   - vitest.config.ts
   - test/README.md
   - resources/knowledge/{test-levels-framework,test-priorities-matrix,data-factories,selective-testing,ci-burn-in,test-quality,fixture-architecture,network-first,playwright-cli}.md
 ---
 
-# Ringkasan Otomasi Test: Story 1.6 (Membuat kelas dan membagikan tautan pendaftaran)
+# Ringkasan Otomasi Test: Story 1.7 (API pendaftaran berkuota dengan daftar tunggu FIFO, R1–R3)
 
 **Tanggal:** 2026-11-04 · **Workflow:** `bmad-testarch-automate` (Create) · **Penulis:** Murat (TEA) untuk Rustan
+
+Ringkasan run sebelumnya (Story 1.6) dipindahkan ke `automation-summary-1-6.md` supaya tidak tertimpa.
 
 ## 1. Preflight dan konteks
 
 | Hal | Nilai |
 | --- | --- |
 | Stack terdeteksi | `fullstack`: React + Vite (`vite.config.ts`, `playwright.config.ts`) dan Fastify + better-sqlite3 (Vitest `integration`) |
-| Framework | Vitest 5 (project `unit`, `integration`, `tz-*`) dan Playwright 1.64 + `@axe-core/playwright` (project `admin-desktop`, `participant-mobile`) |
-| Mode | BMad-Integrated: spec story 1.6 (`done`), checklist ATDD 1.6, `test-design-epic-1.md`, `deferred-work.md` |
-| Flag TEA | `tea_use_playwright_utils: true`, tetapi `@seontechnologies/playwright-utils` tidak terpasang (A-6), jadi gate tidak terbuka dan dipakai pola tradisional (`fixture-architecture`, `network-first`). `tea_use_pactjs_utils: true`, tetapi tidak ada artefak Pact atau kebutuhan kontrak, jadi tidak relevan. `tea_browser_automation: auto` |
+| Framework | Vitest 5 (project `unit`, `integration`, `tz-*`) dan Playwright + `@axe-core/playwright` (project `admin-desktop`, `participant-mobile`) |
+| Mode | BMad-Integrated: spec story 1.7 (`done`), checklist ATDD 1.7 (bagian "Cabang sekunder"), `test-design-epic-1.md` (ID 1.7-*) |
+| Flag TEA | `tea_use_playwright_utils: true`, tetapi `@seontechnologies/playwright-utils` tidak terpasang, jadi gate tidak terbuka. `tea_use_pactjs_utils: true`, tetapi tidak ada artefak Pact atau kebutuhan kontrak. `tea_browser_automation: auto` |
 | Mode eksekusi | `auto` diresolusi menjadi `sequential`, karena subagen hanya dipakai atas permintaan pengguna |
-| Fragmen dimuat | core (6) + `fixture-architecture`, `network-first`, `playwright-cli` |
+| Fragmen dimuat | core (6) + `fixture-architecture`, `network-first`, `playwright-cli` (sama dengan run 1.6) |
+| Baseline | `npm test` 38 berkas, 318/318 lulus sebelum perubahan |
+
+Eksplorasi browser tidak dilakukan. Story 1.7 hanya API; halaman pendaftaran baru ada di Story 1.8.
 
 ## 2. Target dan rencana cakupan
 
 ### Yang sudah ada dan tidak diduplikasi
 
-Test ATDD dan test hasil review sudah mencakup ID test-design 1.6 berikut. Semuanya tidak ditulis ulang:
-
 | ID test-design | Prioritas | Lokasi yang sudah ada |
 | --- | --- | --- |
-| 1.6-UNIT-001 `validateSessionDates` | P1 | `src/server/domain/session-dates.test.ts` |
-| 1.6-UNIT-002 `classStatus` `<=` | P1 | `src/server/domain/class-status.test.ts` |
-| 1.6-API-001 / 1.6-API-002 POST 201/400 | P1 | `src/server/http/admin-classes.test.ts` |
-| 1.6-API-003 GET 404 `class_not_found` | P2 | `src/server/http/admin-classes.test.ts` |
-| 1.6-E2E-001 UJ-1 langkah 1–4 + axe | P1 | `e2e/admin-class-create.spec.ts` (AC-5, AC-6) |
-| 1.6-E2E-002 Salin tautan (izin diberikan) | P2 | `e2e/admin-class-create.spec.ts` (AC-7) |
-| 1.6-UNIT-003 Badge Daftar tunggu = `warning` | P3 | `src/client/components/Badge.test.ts` |
-| Halaman `/admin/kelas/987654`, status `finished` dari GET, tanggal kalender tidak sah, alfabet `publicCode` (20 sampel), seed demo relatif Clock | P2 | test review vgap #14–#19 |
+| 1.7-INT-001 R1 worker ×50 + mutation check | P0 | `src/server/services/registrations.concurrency.test.ts` (AC-5, AC-7) |
+| 1.7-API-001 R1 HTTP ×50 | P0 | idem (AC-6) |
+| 1.7-INT-003 / 1.7-API-002 R2 serentak + mutation check | P0 | idem (AC-9, AC-10) |
+| 1.7-UNIT-001 keputusan + posisi | P1 | `src/server/domain/registration-rules.test.ts` (AC-2) |
+| 1.7-INT-005 / 1.7-INT-006 R3 ekor antrean, FIFO menurut `id` | P1 | `src/server/services/registrations.test.ts` (AC-11, AC-12) |
+| 1.7-API-004 R2 serial | P1 | `src/server/http/public-registrations.test.ts` (AC-8) |
+| 1.7-API-005 409 + batas 00.00 WIB di 3 zona | P1 | `public-registrations.test.ts` (AC-13), `registrations.tz.test.ts` (AC-14) |
+| 1.7-API-006 / 1.7-API-007 / 1.7-API-008 validasi, DTO publik, 1.000 ref, 404 | P1/P2 | `public-registrations.test.ts` (AC-3, AC-4) |
+| 1.7-INT-009 seed B-2b | P1 | `scripts/scripts.test.ts` (AC-15) |
+| 1.7-INT-010 kolom/indeks/CHECK utama | P2 | `src/server/data/registrations-schema.test.ts` (AC-1) |
+| Email > 254 karakter → 400 | P2 | `src/shared/schemas.test.ts` (patch review story 1.7) |
+| 415 untuk tulis non-JSON (generik) | P2 | `src/server/http/auth.test.ts` (hanya rute login/admin; rute publik belum) |
 
-### Celah yang diotomasi (sumber: cabang sekunder ATDD, `deferred-work.md`, sisa 1.6-E2E-002)
+### Celah yang diotomasi
+
+Sumber: daftar "Cabang sekunder" di checklist ATDD 1.7, ID test-design 1.7 yang belum punya test, dan perilaku baru story 1.7 yang belum terjaga.
 
 | # | Target | Level | Prioritas | Alasan level |
 | --- | --- | --- | --- | --- |
-| 1 | Skema 002: CHECK kuota (0, negatif, pecahan, teks), judul 0/121, `public_code` panjang/karakter, `created_at`/`updated_at` bukan ISO-Z, tanpa default waktu SQL | Integrasi (data) | P2 | Jaring lapis DB di bawah zod. Hanya terlihat lewat SQL langsung |
-| 2 | UNIQUE `public_code`, UNIQUE `(class_id, session_date)`, format `session_date`, FK sesi yatim | Integrasi (data) | P2 | Sama |
-| 3 | `createClass` atomik: gagal di sesi kedua → tanpa baris kelas/sesi, koneksi tetap sehat | Integrasi (services) | P2 | AD-3. Tidak teramati dari HTTP |
-| 4 | 1.000 `generatePublicCode` unik dan tanpa digit | Integrasi (services) | P2 | Test design AC-3 "1.000 publicCode unik". Test API hanya memakai 20 sampel alfabet |
-| 5 | Tabrakan `public_code` dibuat ulang; 5 tabrakan → gagal tanpa baris | Integrasi (services) | P3 | Jalur langka, hanya bisa dipaksa lewat `randomBytes` terkendali |
-| 6 | Clipboard ditolak → URL terpilih + "Tautan belum tersalin…" via live region + axe | E2E | P2 | Sisa 1.6-E2E-002 (deferred #20). Perilaku browser murni |
-| 7 | Hapus baris tanggal membuang error per baris dan ringkasan yang sudah basi | E2E | P2 | Regresi patch review #3. Interaksi DOM murni |
-| 8 | Urutan tanggal di DOM mengikuti server; toast "Kelas tersimpan" tidak muncul lagi setelah muat ulang; axe tanpa toast | E2E | P3 | Deferred #21 + cabang ATDD AC-6/AC-9 |
+| 1 | **1.7-INT-007** `SQLITE_CONSTRAINT_UNIQUE` → baca ulang → 200 `alreadyActive` (Terdaftar dan Daftar tunggu), tanpa baris tambahan | Integrasi (services) | P1 | AD-5. Jalur balapan tidak bisa dipicu secara deterministik dari HTTP. Dipaksa lewat cek aktif "basi" satu kali |
+| 2 | **1.7-INT-011** daftar ulang setelah Dibatalkan = baris baru di ekor antrean, ref baru | Integrasi (services) | P2 | State Dibatalkan hanya bisa dibuat lewat fixture SQL (pembatalan baru ada di Epik 2) |
+| 3 | R2 per kelas: email sama aktif di dua kelas, hitungan per kelas | Integrasi (services) | P2 | Unique index `(class_id, email)`. Belum ada test lintas kelas |
+| 4 | AD-18: kelas Selesai menolak `registration_closed` walau email sudah aktif, tanpa mengubah baris | Integrasi (services) | P2 | Cabang ATDD AC-13. Membuktikan `assertClassOpen` mendahului cek aktif |
+| 5 | Tabrakan `public_ref` dibuat ulang; 5 tabrakan → gagal tanpa baris | Integrasi (services) | P3 | Jalur langka, hanya bisa dipaksa lewat `randomBytes` terkendali (pola 1.6 `classes.public-code.test.ts`) |
+| 6 | Rute publik: `text/plain`, form-urlencoded, tanpa Content-Type → 415, tanpa baris | API (`inject`) | P2 | Cabang ATDD AC-4. Hook `preParsing` belum diuji di prefix `/api/public` |
+| 7 | **1.7-INT-012** NFR8: log level `trace` di 6 jalur (Terdaftar, Daftar tunggu, sudah aktif, 400, 409, GET) tanpa email/nama | API (`inject` + stream log) | P2 | Pola test privasi log Story 1.4 |
+| 8 | GET publik: `today` dan status bergeser tepat 00.00 WIB, di 3 zona proses | API (`*.tz.test.ts`) | P2 | Cabang ATDD AC-3. Klien memakai `today` dari respons |
+| 9 | GET admin `full` saat Terdaftar = kuota, tetap `full` saat ada antrean | API (`inject`) | P2 | Perubahan story 1.7 pada `getClass`. Sebelumnya hanya `open`/`finished` yang diuji |
+| 10 | `registrationRequestSchema`: trim nama/email, nama spasi saja, email berspasi di tengah, nama bukan string, body array/string/null → `fields` nama + email | Unit | P2 | Logika zod murni. Kasus API (`''`, 101, hilang) tidak diulang |
+| 11 | `nextSessionDate`: hari ini termasuk, urutan masukan, tanggal lampau dilewati, semua lampau → `undefined` | Unit | P2 | Fungsi domain murni. Batas `>=` (asumsi ATDD A-4) |
+| 12 | Skema 003: nama 0/101, email 2/255, `public_ref` 9 karakter / di luar base64url, `cancelled_by` tak dikenal, Dibatalkan tanpa `cancelled_by`, `cancelled_at` bukan ISO-Z; nilai batas sah | Integrasi (data) | P2 | Jaring lapis DB di bawah zod, hanya terlihat lewat SQL langsung |
+| 13 | **1.7-INT-010** bagian statis: aturan `registrations-single-writer` dipindahkan ke fitness test HP-3 dengan fixture negatif/positif | Unit (statis) | P2 | Rekomendasi test design. Pemindaian di AC-1 dihapus agar tidak ganda |
 
-Cakupan: **selektif**. Hanya celah yang tercatat yang diisi. Validasi judul/kuota tidak diulang di E2E (panduan test-design §Automate butir 5).
+Cakupan: **selektif**. Hanya celah yang tercatat yang diisi. Tidak ada E2E baru karena story 1.7 tidak punya UI. **1.7-EXP-001** (matikan server di tengah ledakan pendaftaran) tetap manual, P3.
 
 ## 3. Berkas yang dibuat/diubah
 
-| Berkas | Status | Test |
+| Berkas | Status | Test baru |
 | --- | --- | --- |
-| `src/server/data/classes-schema.test.ts` | baru | 15 (P2) |
-| `src/server/services/classes.test.ts` | baru | 2 (P2) |
-| `src/server/services/classes.public-code.test.ts` | baru | 2 (P3) |
-| `e2e/admin-class-create.spec.ts` | ditambah `describe` "cabang sekunder" | 3 × 2 project (2 P2, 1 P3) |
-| `test/README.md` | tabel Story 1.6 diperbarui | — |
+| `src/server/services/registrations.recovery.test.ts` | baru | 2 (#1 P1, #5 P3) |
+| `src/server/services/registrations.test.ts` | `describe` baru "secondary branches" | 3 (#2–#4) |
+| `src/server/http/public-registrations.test.ts` | `describe` baru "secondary branches" | 4 (#6 ×3, #7) |
+| `src/server/http/registrations.tz.test.ts` | ditambah satu `it` | 1 × 3 zona (#8) |
+| `src/server/http/admin-classes.test.ts` | ditambah satu `it` | 1 (#9) |
+| `src/shared/schemas.test.ts` | ditambah | 4 (#10) |
+| `src/server/domain/class-status.test.ts` | `describe` baru `nextSessionDate` | 4 (#11) |
+| `src/server/data/registrations-schema.test.ts` | ditambah; pemindaian statis AC-1 dihapus (pindah ke HP-3), judul AC-1 disesuaikan | 10 (#12) |
+| `src/architecture.test.ts` | aturan `registrations-single-writer` + fixture | 6 (#13) |
+| `test/README.md` | tabel Story 1.7 diperbarui | — |
+| `_bmad-output/test-artifacts/automation-summary-1-6.md` | ringkasan 1.6 dipindahkan (`git mv`) | — |
 
-Total baru: **19 test Vitest + 3 test E2E** (6 eksekusi di dua project). Tidak ada fixture, helper, atau dependensi baru. Semua memakai `createTestDb`, `uniqueTitle`, fixture `adminLogin`/`uid`/`expectNoA11yViolations` yang sudah ada.
+Total baru: **35 test** (37 eksekusi Vitest karena satu test tz berjalan di 3 zona). Tidak ada fixture, helper, atau dependensi baru. Semua memakai `createTestDb`, `givenClass`, `statusCounts`, `uniqueEmail`, `fixedClock` yang sudah ada. Kode produksi tidak diubah.
 
 ## 4. Validasi
 
 | Perintah | Hasil |
 | --- | --- |
 | `npm run typecheck` | exit 0 |
-| `npm test` | 30 berkas, **300/300 lulus** (termasuk fitness test arsitektur) |
-| `npm run test:e2e` | **56/56 lulus** (admin-desktop + participant-mobile) |
+| `npm test` | 39 berkas, **355/355 lulus** (sebelumnya 318) |
+| `npm run test:e2e` | **56/56 lulus** (admin-desktop + participant-mobile; regresi, tanpa spec baru) |
 
-**Mutation check (test benar-benar menjaga perilaku):** cabang produksi dirusak sementara lalu dipulihkan (`git status` bersih):
+**Mutation check.** Setiap cabang produksi dirusak sementara lalu dipulihkan dengan `git checkout`. Setelah itu tidak ada berkas produksi yang berubah.
 
 | Mutasi | Test yang gagal |
 | --- | --- |
-| Loop retry `publicCodeExists` dimatikan | kedua test `classes.public-code.test.ts` (UNIQUE bocor sebagai `SqliteError`) |
-| `selectAllChildren` di `CopyLinkButton` dihapus | E2E clipboard ditolak |
-| Pembersihan `fields`/`summary` di `removeRow` dihapus | E2E Hapus baris |
-| `navigate(..., { state: null })` di `ClassPage` dimatikan | E2E toast setelah muat ulang (**setelah perbaikan**, lihat di bawah) |
+| `catch` `isUniqueViolation` → retry dihapus | 1.7-INT-007 (`SqliteError` bocor) |
+| Cek aktif dijalankan sebelum `assertClassOpen` | AD-18 kelas Selesai + email aktif (memberi 200 `alreadyActive`, bukan 409) |
+| Loop `publicRefExists` dimatikan | tabrakan `public_ref` |
+| `findActiveRegistration` tanpa filter `class_id` | R2 email sama di kelas berbeda |
+| `UPDATE registrations` ditaruh di `services/class-guard.ts` | HP-3 `repository source files satisfy every rule` |
+| `nextSessionDate` memakai `>` | `nextSessionDate` "today itself" |
+| `getClass` admin dengan `registeredCount = 0` | GET admin `full` |
+| `request.log.info({ body })` di rute pendaftaran | 1.7-INT-012 privasi log |
 
-Temuan dari mutation check: versi pertama test toast memakai `await expect(...).toHaveCount(0)`. Assertion itu lulus palsu karena terus mencoba ulang sampai toast hilang sendiri setelah 5 detik. Sekarang diganti dengan hitungan sekali-ambil setelah `<h1>` tampil. Toast dipasang saat mount, sebelum data kelas termuat, jadi urutan ini deterministik.
+Checklist: framework siap ✓ · pemetaan cakupan tanpa duplikasi (pemindaian AC-1 dipindah, bukan disalin) ✓ · tanpa jeda tetap ✓ · nama test menyebut ID aturan (`R2:`, `AD-17:`, `FR7:`, `NFR8:`) ✓ · data ber-`uniqueEmail`/`uniqueTitle`, satu DB per berkas ✓ · DB nyata, tanpa mock DB (seam `vi.mock` hanya pada fungsi baca dan `randomBytes`) ✓ · tanpa sesi CLI browser ✓ · artefak di `_bmad-output/test-artifacts/` ✓.
 
-Checklist: framework siap ✓ · pemetaan cakupan tanpa duplikasi ✓ · tanpa jeda tetap/`waitForTimeout` ✓ · selector `getByRole`/`getByLabel` teks Indonesia ✓ · data ber-`uid`, kelas seed hanya dibaca ✓ · DB nyata, tanpa mock DB ✓ · tanpa sesi CLI browser yang tertinggal ✓ · artefak di `_bmad-output/test-artifacts/` ✓.
+## 5. Temuan, asumsi, dan risiko
 
-## 5. Asumsi dan risiko
-
-- **A-1:** Test skema dan test atomisitas sengaja memakai SQL mentah lewat `testDb.db` (`INSERT` langsung dan `CREATE TEMP TRIGGER`). Ini menyimpang dari aturan README "builder memanggil use-case", dan dibenarkan karena yang diuji adalah skema/transaksi itu sendiri. Tidak ada impor `better-sqlite3` dan tidak ada `CREATE TABLE`. Trigger bersifat `TEMP` per koneksi dan di-drop di `finally`.
-- **A-2:** Kuota teks `'20'` tidak diuji di lapis DB karena afinitas `INTEGER` SQLite mengubahnya menjadi 20 sebelum CHECK. Yang diuji adalah teks non-numerik. Penolakan `'20'` tetap dijaga zod (test API).
-- **A-3:** `vi.mock('node:crypto')` hanya berlaku di `classes.public-code.test.ts`. Byte asli dipakai bila antrean kosong.
-- **Belum diotomasi:** badge "Selesai" di halaman kelas (cabang ATDD AC-6). Kelas Selesai tidak bisa dibuat lewat POST di bawah clock e2e beku, dan e2e tidak boleh menulis DB langsung. Status `finished` sudah dijaga di API (`admin-classes.test.ts`) dan labelnya di `Badge.test.ts`. Usulan: tambah kelas demo "Selesai" di `seed:demo` (keputusan story, bukan TEA), atau tutup lewat Story 1.9 (tabel kelas).
-- **Risiko terbuka (tidak berubah):** R-022 (spine AD-6/AD-19 belum diperbarui) tetap terbuka di `deferred-work.md`.
+- **F-1 (temuan, P3): CHECK pembatalan AD-17 meloloskan setengah-state pada baris aktif.** `CHECK ((status = 'cancelled') = (cancelled_at IS NOT NULL AND cancelled_by IS NOT NULL))` menerima baris `registered` yang punya `cancelled_by = 'admin'` tetapi `cancelled_at` NULL, atau sebaliknya. Migrasi 003 mengikuti rumusan spine AD-17 kata per kata, jadi ini celah di spine, bukan bug implementasi. Risiko sekarang rendah karena hanya `registrations-repo.ts` yang menulis dan belum ada jalur pembatalan. Saya tidak menulis test yang mengunci perilaku longgar itu, dan migrasi tidak diubah (perubahan skema/arsitektur di luar wewenang automate). **Usulan:** sebelum Story pembatalan Epik 2, putuskan lewat `bmad-architecture` apakah perlu migrasi baru `004_…` dengan tambahan `CHECK ((cancelled_at IS NULL) = (cancelled_by IS NULL))`. Bila ya, tambahkan kasus "cancelled_by on an active row" ke `registrations-schema.test.ts`.
+- **A-1:** 1.7-INT-007 memakai `vi.mock` parsial pada `registrations-repo.js`. Hanya `findActiveRegistration` yang dibuat basi satu kali per test; penghitung harus kembali ke 0, jadi jalurnya terbukti dilewati. DB, unique index, dan transaksi tetap asli. Ini lebih dekat ke balapan nyata daripada menyisipkan baris di antara `planRegistration`/`applyRegistration` (saran checklist ATDD), karena pemetaan constraint ada di `register`, bukan di tx-step.
+- **A-2:** Fixture SQL `UPDATE registrations … 'cancelled'` di `registrations.test.ts` (#2) mengikuti pengecualian AC-11. Aturan HP-3 baru sengaja mengecualikan `*.test.ts` dan tetap memindai helper di `test/`.
+- **A-3:** Test 415 rute publik tidak menduplikasi `auth.test.ts`. Yang diuji adalah prefix `/api/public` dan "tanpa baris", bukan hook-nya secara umum.
+- **A-4:** Durasi `npm test` naik sekitar 1 detik (dari ±18–19 s menjadi ±19–22 s). Penyumbang terbesar tetap `registrations.concurrency.test.ts` (R-028, tidak berubah).
+- **Risiko terbuka (tidak berubah):** R-022 (spine AD-6/AD-18 belum diperbarui ke `<=`) tetap terbuka di `deferred-work.md`.
 
 ## 6. Langkah berikut
 
-1. `/bmad-testarch-test-review` untuk `e2e/admin-class-create.spec.ts` (sekarang ±330 baris, masih di bawah batas H5).
-2. `/bmad-testarch-atdd` untuk Story 1.7 (P0 R1/R2 + mutation check).
-3. `/bmad-testarch-trace` di akhir Epik 1.
-4. Entri `deferred-work.md` untuk cabang sekunder 1.6, clipboard ditolak, dan toast setelah muat ulang sudah tertutup oleh run ini dan bisa ditandai selesai saat retrospektif.
+1. `/bmad-testarch-test-review` untuk `src/server/http/public-registrations.test.ts` (261 baris) dan `registrations.recovery.test.ts` (pola `vi.mock` parsial yang baru).
+2. Putuskan F-1 lewat `bmad-architecture` sebelum Epik 2 (pembatalan).
+3. `/bmad-testarch-atdd` untuk Story 1.8 (E2E halaman pendaftaran memakai seed B-2b).
+4. `/bmad-testarch-trace` di akhir Epik 1. Cabang sekunder checklist ATDD 1.7 sudah tertutup semua oleh run ini.
 
 ## Playwright Utils deviations
 
-None. Paketnya tidak terpasang, jadi mandat tidak berlaku (A-6). Test baru memakai Playwright vanilla dan `e2e/support/fixtures.ts`, sesuai konvensi repo.
+None. Paketnya tidak terpasang, jadi mandat tidak berlaku. Run ini tidak membuat atau mengubah spec Playwright.

@@ -23,7 +23,8 @@ type RuleId =
   | 'sqlite-only-in-data'
   | 'no-wall-clock-in-domain-services'
   | 'no-sql-time-functions-in-migrations'
-  | 'layer-direction';
+  | 'layer-direction'
+  | 'registrations-single-writer';
 
 type Layer = 'shared' | 'domain' | 'data' | 'services' | 'http' | 'client';
 
@@ -39,6 +40,15 @@ const ALLOWED_LAYER_DEPS: Record<Layer, readonly Layer[]> = {
 
 const CODE_EXTENSIONS = ['.ts', '.tsx'];
 const MIGRATIONS_DIR = 'src/server/data/migrations/';
+
+/**
+ * AD-17 (Story 1.7): hanya repository ini yang `INSERT`/`UPDATE` tabel `registrations`, dan tidak ada yang
+ * `DELETE`. Berkas `*.test.ts` dikecualikan karena boleh menyiapkan state tak sah sebagai fixture (mis. AC-11).
+ */
+const REGISTRATIONS_WRITER = 'src/server/data/registrations-repo.ts';
+const REGISTRATIONS_WRITE = /\b(?:INSERT\s+(?:OR\s+\w+\s+)?INTO|UPDATE(?:\s+OR\s+\w+)?|REPLACE\s+INTO)\s+registrations\b/i;
+const REGISTRATIONS_DELETE = /\bDELETE\s+FROM\s+registrations\b/i;
+const isTestFile = (filePath: string): boolean => /\.test\.tsx?$/.test(filePath);
 
 function layerOf(filePath: string): Layer | null {
   if (filePath.startsWith('src/shared/')) return 'shared';
@@ -118,6 +128,15 @@ function checkFiles(files: readonly SourceFile[]): Violation[] {
 
         if (layer === 'domain' && specifier.startsWith('node:')) {
           violations.push({ rule: 'layer-direction', path: file.path, detail: `domain → ${specifier} (I/O)` });
+        }
+      }
+
+      if (!isTestFile(file.path)) {
+        if (file.path !== REGISTRATIONS_WRITER && REGISTRATIONS_WRITE.test(file.content)) {
+          violations.push({ rule: 'registrations-single-writer', path: file.path, detail: 'INSERT/UPDATE registrations' });
+        }
+        if (REGISTRATIONS_DELETE.test(file.content)) {
+          violations.push({ rule: 'registrations-single-writer', path: file.path, detail: 'DELETE FROM registrations' });
         }
       }
 
@@ -229,6 +248,27 @@ describe('architecture fitness (HP-3)', () => {
       ['src/server/domain/x.ts', "import { readFileSync } from 'node:fs';"],
     ])('flags imports against the layer direction in %s', (filePath, content) => {
       expect(rulesHit([{ path: filePath, content }])).toContain('layer-direction');
+    });
+
+    it.each([
+      ['src/server/services/registrations.ts', "tx.prepare('UPDATE registrations SET status = ? WHERE id = ?')"],
+      ['src/server/data/classes-repo.ts', 'db.prepare(`INSERT INTO registrations (public_ref) VALUES (?)`)'],
+      ['scripts/seed-demo.ts', "db.exec('INSERT OR IGNORE INTO registrations (email) VALUES (1)')"],
+      ['test/helpers/registrations.ts', "db.prepare('replace into registrations (id) values (1)')"],
+      ['src/server/data/registrations-repo.ts', "tx.prepare('DELETE FROM registrations WHERE id = ?')"],
+    ])('flags a registrations write outside the single writer, or any DELETE, in %s', (filePath, content) => {
+      expect(rulesHit([{ path: filePath, content }])).toContain('registrations-single-writer');
+    });
+
+    it('allows registrations writes in the repository, reads anywhere, and raw fixtures in *.test.ts', () => {
+      expect(
+        rulesHit([
+          { path: 'src/server/data/registrations-repo.ts', content: "tx.prepare('INSERT INTO registrations (id) VALUES (1)'); tx.prepare('UPDATE registrations SET status = 1')" },
+          { path: 'src/server/services/x.ts', content: "db.prepare('SELECT COUNT(*) FROM registrations')" },
+          { path: 'src/server/services/x.test.ts', content: "db.prepare('UPDATE registrations SET status = 1')" },
+          { path: 'src/server/data/x.ts', content: "db.prepare('UPDATE registrations_archive SET x = 1')" },
+        ]),
+      ).toEqual([]);
     });
 
     it('allows imports along the layer direction', () => {

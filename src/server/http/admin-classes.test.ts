@@ -211,6 +211,21 @@ describe('GET /api/admin/classes/:id — derived status (FR4, AD-6)', () => {
     const dayBefore = createServices({ db: testDb.db, clock: fixedClock('2026-11-22T03:00:00.000Z') });
     expect(dayBefore.classes.getClass(created.id).status).toBe('open');
   });
+
+  // Automate Story 1.7: `getClass` kini menghitung Terdaftar, jadi admin melihat Penuh dari server (AD-6).
+  it('[P2] FR4 R1: the admin class reads as full once Terdaftar reaches the quota, and stays full while people wait', async () => {
+    const created = (await adminRequest('POST', '/api/admin/classes', validClass({ quota: 2, sessionDates: ['2026-11-16'] }))).json<ClassDto>();
+    const statusOf = async () => (await adminRequest('GET', `/api/admin/classes/${created.id}`)).json<{ status: string }>().status;
+    const enroll = (label: string) =>
+      testDb.services.registrations.register(created.publicCode, { name: `Peserta ${label}`, email: uniqueEmail(label) });
+
+    enroll('a');
+    expect(await statusOf()).toBe('open');
+    enroll('b');
+    expect(await statusOf()).toBe('full');
+    expect(enroll('c').status).toBe('waitlisted');
+    expect(await statusOf()).toBe('full');
+  });
 });
 
 describe('POST /api/admin/classes — public code alphabet (P1-011, AD-10)', () => {
