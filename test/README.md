@@ -100,6 +100,10 @@ Helper yang menyusul di story pemiliknya (jangan dibuat di tempat lain):
 | `src/server/domain/{session-dates,class-status}.test.ts` | `validateSessionDates` (kosong, ganda, tanpa tanggal setelah hari ini) dan `classStatus` (`max(session_date) <= today` → Selesai). |
 | `src/client/components/Badge.test.ts` | Render statis `react-dom/server`: teks Glosarium, ikon `aria-hidden`, Daftar tunggu bukan `danger`. |
 | `scripts/scripts.test.ts` (AC-9) | `seed:demo` menambah kelas demo idempoten, minimal satu bertanggal setelah hari ini. |
+| `src/server/data/classes-schema.test.ts` (automate) | Skema migrasi 002 lewat SQL mentah: CHECK kuota/judul/`public_code`/format waktu, tanpa default waktu SQL, UNIQUE `public_code` dan `(class_id, session_date)`, FK sesi. |
+| `src/server/services/classes.test.ts` (automate) | `createClass` atomik (trigger `TEMP` menggagalkan sesi kedua → tanpa baris kelas/sesi), 1.000 `generatePublicCode` unik tanpa digit. |
+| `src/server/services/classes.public-code.test.ts` (automate) | `vi.mock('node:crypto')` antrean byte: tabrakan `public_code` dibuat ulang; 5 tabrakan → gagal tanpa baris. |
+| `e2e/admin-class-create.spec.ts` › "cabang sekunder" (automate) | Clipboard ditolak (stub `addInitScript`) → teks URL terpilih + pesan salin manual; Hapus baris membuang error basi; urutan tanggal dari server dan toast tidak muncul lagi setelah muat ulang (hitungan sekali-ambil, bukan `toHaveCount`). |
 
 - Kelas seed hanya dibaca. Spec e2e membuat kelasnya sendiri lewat formulir atau `page.request.post('/api/admin/classes')` dengan judul ber-`uid`.
 

@@ -15,6 +15,7 @@ import { expect, test } from './support/fixtures';
 
 const DUPLICATE_DATE_MESSAGE = 'Tanggal 16 Nov 2026 sudah ada di kelas ini';
 const PUBLIC_CODE = '[A-Za-z0-9_-]{10}';
+const CLASS_SAVED = 'Kelas tersimpan';
 
 const titleField = (page: Page) => page.getByLabel(/^Judul kelas/);
 const quotaField = (page: Page) => page.getByLabel(/^Kuota/);
@@ -212,4 +213,99 @@ test.describe('Buat kelas dan bagikan tautan (FR2, FR6, UJ-1)', () => {
     await expect(back).toHaveAttribute('href', '/admin/kelas');
     await expectNoA11yViolations();
   });
+});
+
+/**
+ * Automate Story 1.6 — cabang sekunder ATDD (AC-5, AC-6, AC-7) dan celah review di `deferred-work.md`.
+ * Tidak mengulang validasi judul/kuota (sudah di `admin-classes.test.ts`, 1.6-API-002).
+ */
+test.describe('Buat kelas dan bagikan tautan — cabang sekunder (FR2, FR6)', () => {
+  test(
+    '[P2] AC-7 FR6: when the clipboard is denied the link text is selected and the manual-copy message is announced',
+    { tag: '@P2' },
+    async ({ page, adminLogin, uid, expectNoA11yViolations }) => {
+      // Clipboard ditolak secara deterministik di semua project (izin browser berbeda per perangkat).
+      await page.addInitScript(() => {
+        const denied = () => Promise.reject(new DOMException('Akses clipboard ditolak', 'NotAllowedError'));
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: denied, readText: denied } });
+      });
+      await adminLogin();
+      const created = await page.request.post('/api/admin/classes', {
+        data: { title: `Kelas clipboard ditolak ${uid}`, sessionDates: ['2026-11-16'], quota: 10 },
+      });
+      const { id, publicCode } = (await created.json()) as { id: number; publicCode: string };
+
+      await page.goto(`/admin/kelas/${id}`);
+      const expectedUrl = `${new URL(page.url()).origin}/daftar/${publicCode}`;
+      await page.getByRole('button', { name: 'Salin tautan' }).click();
+
+      // Kriteria inti: pesan salin manual diumumkan lewat live region, dan URL terpilih siap disalin.
+      const message = 'Tautan belum tersalin. Salin tautan di atas secara manual.';
+      await expect(page.locator('[aria-live="polite"]').filter({ hasText: message })).toBeVisible();
+      await expect.poll(() => page.evaluate(() => window.getSelection()?.toString().trim() ?? '')).toBe(expectedUrl);
+
+      await expect(page.getByRole('button', { name: 'Salin tautan' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Tautan disalin' })).toHaveCount(0);
+      await expect(page.getByText(expectedUrl, { exact: true })).toBeVisible();
+      await expectNoA11yViolations();
+    },
+  );
+
+  test(
+    '[P2] AC-5 FR2: removing a date row clears the stale per-row errors so they do not jump to another row',
+    { tag: '@P2' },
+    async ({ page, adminLogin, uid }) => {
+      await adminLogin();
+      await page.goto('/admin/kelas/baru');
+      await fillClassForm(page, { title: `Kelas hapus baris ${uid}`, dates: ['2026-11-16', '2026-11-16', '2026-11-23'], quota: '12' });
+      await page.getByRole('button', { name: 'Simpan kelas' }).click();
+      await expect(sessionDateField(page, 2)).toHaveAttribute('aria-invalid', 'true');
+
+      // Hapus baris pertama: baris ganda kini menjadi baris 1 dan tidak lagi ganda.
+      await page.getByRole('button', { name: 'Hapus tanggal sesi 1' }).click();
+
+      // Kriteria inti: tidak ada error basi yang menempel pada baris lain, ringkasan ikut bersih.
+      await expect(page.locator('[aria-invalid="true"]')).toHaveCount(0);
+      await expect(page.getByText(DUPLICATE_DATE_MESSAGE)).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Tambah tanggal' })).toBeFocused();
+
+      await expect(sessionDateField(page, 1)).toHaveValue('2026-11-16');
+      await expect(sessionDateField(page, 2)).toHaveValue('2026-11-23');
+      await expect(sessionDateField(page, 3)).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Simpan kelas' }).click();
+      await expect(page).toHaveURL(/\/admin\/kelas\/\d+$/);
+      const sessions = page.getByRole('region', { name: 'Tanggal sesi' }).getByRole('listitem');
+      await expect(sessions).toHaveText(['Senin, 16 Nov 2026', 'Senin, 23 Nov 2026']);
+    },
+  );
+
+  test(
+    '[P3] AC-6 FR2: session dates are listed in server order and the "Kelas tersimpan" toast does not return after reload',
+    { tag: '@P3' },
+    async ({ page, adminLogin, uid, expectNoA11yViolations }) => {
+      await adminLogin();
+      await page.goto('/admin/kelas/baru');
+      const title = `Kelas muat ulang ${uid}`;
+      await fillClassForm(page, { title, dates: ['2026-11-23', '2026-11-10', '2026-11-16'], quota: '8' });
+      await page.getByRole('button', { name: 'Simpan kelas' }).click();
+
+      await expect(page).toHaveURL(/\/admin\/kelas\/\d+$/);
+      await expect(page.getByText(CLASS_SAVED)).toBeVisible();
+      const sessions = page.getByRole('region', { name: 'Tanggal sesi' }).getByRole('listitem');
+      await expect(sessions).toHaveText(['Selasa, 10 Nov 2026', 'Senin, 16 Nov 2026', 'Senin, 23 Nov 2026']);
+
+      await page.reload();
+
+      // Kriteria inti: state navigasi sudah dikosongkan, jadi toast tidak diumumkan ulang.
+      // Toast dipasang saat mount, sebelum data kelas termuat; jadi setelah <h1> tampil, toast yang
+      // keliru sudah pasti ada. Hitungan sekali-ambil (bukan `toHaveCount`, yang menunggu sampai toast
+      // hilang sendiri setelah 5 detik dan akan lulus palsu).
+      await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+      expect(await page.getByText(CLASS_SAVED).count()).toBe(0);
+      await expect(sessions).toHaveText(['Selasa, 10 Nov 2026', 'Senin, 16 Nov 2026', 'Senin, 23 Nov 2026']);
+      // Axe pada halaman kelas tanpa toast (cabang ATDD AC-9).
+      await expectNoA11yViolations();
+    },
+  );
 });
