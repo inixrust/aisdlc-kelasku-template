@@ -47,3 +47,9 @@
 - source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-6-membuat-kelas-dan-membagikan-tautan-pendaftaran.md`
   summary: Tambahkan `page.reload()` setelah simpan di e2e AC-6 untuk memastikan toast "Kelas tersimpan" tidak muncul lagi.
   evidence: Review verification-gap: menghapus efek `navigate(..., { replace: true, state: null })` di `ClassPage` tidak menggagalkan test apa pun.
+
+## Deferred from: code review of spec-1-7 (2026-11-04)
+
+- source_spec: `/home/inixindo/aisdlc/aisdlc-kelasku/_bmad-output/implementation-artifacts/spec-1-7-api-pendaftaran-berkuota-dengan-daftar-tunggu-fifo.md`
+  summary: Putuskan apakah `alreadyActive: true` boleh mengembalikan `registrationRef` (dan status/posisi antrean) kepada siapa pun yang mengirim email pemilik, mengingat pembatalan publik 1.11 hanya memeriksa `{ registrationRef, email }`.
+  evidence: Epics 1.7 dan AD-5/AD-10 mewajibkan perilaku ini, dan status publik FR14 juga membuka ref lewat email, jadi email adalah satu-satunya faktor identitas. Pihak ketiga yang tahu email korban dapat membaca ref lalu membatalkan di 1.11. Terima risiko (alat internal) atau ubah AD lewat `bmad-architecture`.

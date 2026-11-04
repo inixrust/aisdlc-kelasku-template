@@ -2,7 +2,7 @@
 title: 'Story 1.7: API pendaftaran berkuota dengan daftar tunggu FIFO (R1, R2, R3)'
 type: 'feature'
 created: '2026-11-04'
-status: 'done'
+status: 'in-progress'
 baseline_commit: 'ebf456cb34c96ecb380a0c96469bf87d0bbecdf7'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -118,3 +118,20 @@ Review dijalankan inline di sesi utama (tanpa subagen; sesi non-interaktif tanpa
 - `npm run build` -- expected: exit 0
 
 **Hasil (2026-11-04):** typecheck exit 0; `npm test` 38 berkas / 318 test lulus, 0 skip; build exit 0.
+
+### Review Findings
+
+Code review `bmad-code-review` (2026-11-04), diff `ebf456c..35d86c7`, mode `full`. Empat lensa (blind, edge case, verification gap, acceptance) dijalankan inline oleh satu reviewer, tanpa subagen. Typecheck dan `npm test` hijau saat review (39 berkas, 355 test). Sesuai AC 1–15 dan batas "Never" spec: tidak ada dependensi baru, flag mutan, atau rute pembatalan/status.
+
+- [ ] [Review][Patch] Email dengan karakter yang membesar saat `toLowerCase()` lolos batas 254 lalu gagal di CHECK SQLite → 500 [src/shared/schemas.ts:645, src/server/services/registrations.ts:64] — `registrationRequestSchema` membatasi `email` pada 254 unit sebelum `normalizeEmail`. `'İ'.repeat(120) + 'a'.repeat(30) + '@x.id'` (155 karakter) menjadi 275 karakter setelah dinormalisasi, sehingga CHECK `length(email) BETWEEN 3 AND 254` menolak insert. Error bukan `SQLITE_CONSTRAINT_UNIQUE`, jadi dilempar ulang sebagai 500 `internal_error` (sisa akar masalah yang sama dengan temuan #1 di Review Triage Log). Perbaikan: terapkan batas panjang pada hasil `normalizeEmail` (mis. `.refine` pada nilai ternormalisasi) dengan pesan `emailTooLong`, plus test regresi.
+- [x] [Review][Defer] `alreadyActive: true` mengembalikan `registrationRef` dan status/posisi antrean milik pemilik email kepada siapa pun yang mengirim email itu [src/server/services/registrations.ts:90] — deferred: perilaku ini diwajibkan epics Story 1.7 dan AD-5/AD-10 (email adalah satu-satunya faktor identitas; status publik FR14 juga membuka ref lewat email), bukan cacat implementasi. Pihak ketiga yang tahu email korban dapat membaca ref lalu membatalkan lewat `POST /api/public/cancellations` (Story 1.11). Putusan produk: terima risiko (alat internal) atau minta konfirmasi lewat tautan email, yang non-goal notifikasi MVP.
+
+#### Rejected
+
+- `false` — `planRegistration` membaca `findClassByPublicCode` sebelum `assertClassOpen`: hanya resolusi kode → id; status, sesi, dan kuota dibaca ulang di `assertClassOpen` dalam transaksi yang sama (sudah ada di Review Triage Log #2).
+- `false` — Retry `SQLITE_CONSTRAINT_UNIQUE` bisa gagal lagi: percobaan kedua berjalan di transaksi `BEGIN IMMEDIATE` baru dan melihat baris aktif; AC-9 ×50 lulus.
+- `false` — Ekspektasi ATDD diubah: hanya penanda `skip`/`fails`, impor statis, argumen wajib `quota`/`registeredCount`, dan filter judul pada test seed 1.6.
+- `false` — Nama/email bocor ke log: handler tidak mencatat body, dan `err` SQLite tidak memuat nilai baris.
+- `low` — Pembacaan `getPublicClass` (kelas, sesi, COUNT) tidak dalam satu transaksi: hanya untuk tampilan; pendaftaran tetap diputuskan di `withWriteTx`, jadi kuota tidak bisa terlampaui. Tidak sebanding dengan tambahan transaksi baca.
+- `low` — Seed gagal di tengah pendaftaran meninggalkan kelas setengah terisi karena idempotensi per judul: alat demo, mudah diulang dengan DB baru; memperbaikinya butuh transaksi lintas use-case.
+- `low` — Regex fitness `registrations-single-writer` bisa dilewati dengan nama tabel dikutip (`"registrations"`): tidak ada kode yang menulis begitu, dan pengaman ini heuristik.
